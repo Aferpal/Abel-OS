@@ -14,6 +14,8 @@ enum irq_vector{
 
 void register_irq_handler(irq_vector_e, interrupt_handler_t);
 
+void register_irq_post_routine(irq_vector_e, interrupt_handler_t);
+
 void unregister_irq_handler(irq_vector_e);
 
 void irq_dispatch(struct interrupt_frame*);
