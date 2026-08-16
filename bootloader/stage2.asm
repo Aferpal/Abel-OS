@@ -655,9 +655,86 @@ kheader_cpy:
   KENTRYOFF dd 0x0
   dw 0x08
 
+align 4
+boot_info_struct:
+  boot_magic           dd 0x21012020
+  
+  e820_mmap_buffer_ptr dd 0x0 
+  e820_mmap_entries    dw 0x0
+  padding              dw 0x0
+  
+  bootstrap_start      dd 0x07c00
+  bootstrap_end        dd e820_buffer
+
+; ======================================================
+; load_mmap: 
+; es:di should point to the buffer where to load
+; on success al = 0x01, 0x00 on error
+; and on success e820_mmap_entries contains number of entries
+;
+load_mmap:
+ 
+  ; ebx set to 0 to start
+  mov word [e820_mmap_entries], 0x00
+
+  mov word [e820_mmap_buffer_ptr], di
+
+  mov ax, es
+  mov dx, es
+
+  shl ax, 4
+  shr dx, 12
+
+  add word [e820_mmap_buffer_ptr], ax
+  adc word [e820_mmap_buffer_ptr + 2], dx
+  
+  xor ebx, ebx
+
+  .e820_loop:
+    mov edx, 0x534D4150
+    mov eax, 0xE820
+    mov ecx, 24
+    int 0x15
+
+    jc .e820_error
+    cmp eax, 0x534D4150
+    jne .e820_error
+
+    cmp ecx, 0
+    je .e820_invalid_entry
+
+    add di, 24
+    inc word [e820_mmap_entries]
+
+  .e820_invalid_entry:
+    test ebx, ebx
+    jne .e820_loop
+
+  .e820_done:
+    mov al, 0x01
+    ret
+  
+  .e820_error:
+    mov al, 0x00
+    ret
+
+; ======================================================
 
 stage2_post_bootstrap_entry:
   
+  ; after loading ourselves we can start the work
+  ; at first we may run the e820 bios call to retrieve
+  ; the memory map
+
+  ; point es:di to destination buffer
+  mov di, e820_buffer
+  
+  call load_mmap
+
+  cmp al, 0x01
+
+  jne stage2_mmap_fatal_error
+
   ; after loading ourselves up we load the kernel
   ; we first load one single sector and read the header
   
@@ -794,6 +871,14 @@ prepare_protected_mode:
   or eax, 1
   mov cr0, eax
 
+  
+  mov eax, cs
+  shl eax, 4
+
+  add [bootstrap_end], eax
+
+  add eax, boot_info_struct
+
   jmp far dword [KENTRYOFF]
 
 stage2_kernel_header_fatal_error:
@@ -818,6 +903,24 @@ stage2_kernel_load_sectors_fatal_error:
 
   hlt
   jmp stage2_kernel_load_sectors_fatal_error
+
+stage2_mmap_fatal_error:
+  mov al, 'M'
+  mov ah, 0x0e
+  int 0x10
+  
+  mov al, 'P'
+  int 0x10
+
+  mov al, 'E'
+  int 0x10
+  
+  hlt
+  jmp stage2_mmap_fatal_error
+
+align 4
+e820_buffer: ; this is just a tag meaning the end of real code. 
+             ; we do not need to account the padding 
 
 times (512 - (($-$$) % 512 )) % 512 db 0
 

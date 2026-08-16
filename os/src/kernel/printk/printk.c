@@ -3,6 +3,7 @@
 #include "drivers/keyboard.h"
 #include "arch/x86/stdarg.h"
 #include "string.h"
+#include <stdint.h>
 
 static char *video=(char*) 0xb8000;
 
@@ -193,6 +194,29 @@ print_hex(unsigned int n)
 }
 
 void
+print_longx(uint64_t n)
+{
+	print_str("0x");
+        if (n == 0) {
+                put_char('0');
+        } else {
+                char nstr[21];
+                nstr[20] = 0;
+                int i = 19;
+		unsigned char current;
+                while ( n > 0 && i >= 0 ) {
+                        current = n & 0x0f;
+			nstr[i] = n_to_single_hex(current);
+                        n = n >> 4;
+                        i--;
+                }
+
+                i++;
+                print_str(&nstr[i]);
+        }
+}
+
+void
 printk(char* fmt, ...)
 {
 	va_list args;
@@ -220,6 +244,10 @@ printk(char* fmt, ...)
 			case 'x':
 				unsigned int un = va_arg(args, unsigned int);
 				print_hex(un);
+				break;
+			case 'l':
+				uint64_t ulx = va_arg(args, uint64_t);
+				print_longx(ulx);
 				break;
 			case '%':
 				put_char('%');

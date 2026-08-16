@@ -16,14 +16,17 @@ global kernel_entry
 extern kernel_main
 
 kernel_entry:
-  mov ax, 0x10
-  mov ds, ax
-  mov es, ax
-  mov fs, ax
-  mov gs, ax
-  mov ss, ax
+  mov bx, 0x10
+  mov ds, bx
+  mov es, bx
+  mov fs, bx
+  mov gs, bx
+  mov ss, bx
+
+  ; in ax we have pointer to boot_info
 
   mov esp, stack_top
+  push eax ; push the pointer
   call kernel_main
 
 section .bss

@@ -6,14 +6,18 @@
 #include "arch/x86/timer/pit.h"
 #include "drivers/keyboard.h"
 #include "kernel/input/input.h"
+#include "kernel/pmm/pmm.h"
+#include "stdint.h"
 
 void
-kernel_main(void)
+kernel_main(struct boot_info* b)
 {
 	clear_screen();
 	printk("Abel-OS\n\n\t");
 	printk("Welcome to my operating system!\n\n");
-	
+
+	pmm_init(b);
+
 	init_int_subsystem();
 
 	input_subsystem_init();
