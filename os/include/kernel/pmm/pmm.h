@@ -8,6 +8,8 @@ void pmm_init(struct boot_info*);
 
 void* pmm_alloc_page();
 
+uint32_t pmm_get_page(void*);
+
 void pmm_free_page_n(uint32_t);
 
 void pmm_free_page(void*);

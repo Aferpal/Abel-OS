@@ -151,7 +151,7 @@ mark_range_as_usable(struct physical_memory_map* pmm, uint32_t base, uint32_t le
 	
 	/* beginning and end */
 	pmm->bitmap[base_bitmap_index] = pmm->bitmap[base_bitmap_index] & base_mask;
-	pmm->bitmap[end_bitmap_index] = pmm->bitmap[base_bitmap_index] & end_mask;
+	pmm->bitmap[end_bitmap_index] = pmm->bitmap[end_bitmap_index] & end_mask;
 
 	/* in between gaps */
 	if (end_bitmap_index - base_bitmap_index >= 2) {
@@ -190,7 +190,7 @@ mark_range_as_used(struct physical_memory_map* pmm, uint32_t base, uint32_t leng
 	
 	/* beginning and end */
 	pmm->bitmap[base_bitmap_index] = pmm->bitmap[base_bitmap_index] | base_mask;
-	pmm->bitmap[end_bitmap_index] = pmm->bitmap[base_bitmap_index] | end_mask;
+	pmm->bitmap[end_bitmap_index] = pmm->bitmap[end_bitmap_index] | end_mask;
 
 
 	/* in between gaps */

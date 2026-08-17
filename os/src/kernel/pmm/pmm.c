@@ -10,8 +10,9 @@ find_first_zero(uint8_t byte)
     uint8_t res = 0xff;
 
     for (int i = 0; i < 8; i++) {
-        if ( (0x1 << (7-i)) & byte == 0) {
+        if ( ((0x1 << (7-i)) & byte) == 0) {
             res = i;
+	    break;
         }
     }
 
@@ -53,24 +54,32 @@ pmm_alloc_page()
 
     /* return starting address */
     uint32_t pageid = (8 * i) + offset;
-
+	printk("PMM: Page %d is allocated\n", pageid);
     return (void*)(pageid*4096);
 }
 
+uint32_t 
+pmm_get_page(void* ptr)
+{
+	uint32_t p = (uint32_t)ptr;
+	p = p/4096;
+	return p;
+
+}
 void
 pmm_free_page_n(uint32_t pageid)
 {
+    printk("PMM: page %d is returned\n", pageid);
     uint32_t bitmap_index = pageid/8;
-	uint8_t bitmap_offset = pageid % 8;
-	uint8_t bitmask = 0xff << (8-bitmap_offset) || 0xff << (6-bitmap_offset);
-    pmm_mmap.bitmap[bitmap_index] = pmm_mmap.bitmap[bitmap_index] & bitmask;
+    uint8_t bitmap_offset = pageid % 8;
+    uint8_t bitmask = 0x1 << (7 - bitmap_offset);
+    pmm_mmap.bitmap[bitmap_index] = (pmm_mmap.bitmap[bitmap_index] | bitmask) ^ bitmask;
 }
 
 void
 pmm_free_page(void* ptr)
 {
-    uint32_t pageid = (uint32_t)ptr/4096;
-    pmm_free_page_n(pageid);
+    pmm_free_page_n(pmm_get_page(ptr));
 }
 
 void*
