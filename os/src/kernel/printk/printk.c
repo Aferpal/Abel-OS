@@ -3,6 +3,7 @@
 #include "drivers/keyboard.h"
 #include "arch/x86/stdarg.h"
 #include "string.h"
+#include "mem.h"
 #include <stdint.h>
 
 static char *video=(char*) 0xb8000;
