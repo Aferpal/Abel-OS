@@ -93,11 +93,6 @@ idt_init()
 
 	idt_load(&idtr);
 
-	printk("[ IDT_INIT ] Idt loaded\n");
-	printk("\tidtr.base = %x\n", idtr.offset);
-	printk("\tidtr.lim = %x\n", idtr.size);
-	printk("\n");
-
 }
 
 void

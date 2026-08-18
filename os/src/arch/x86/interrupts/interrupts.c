@@ -37,6 +37,4 @@ arch_init_int_subsytem()
 
 	sti();
 
-	printk(" * IRQs ENABLED\n");
-    
 }

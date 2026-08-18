@@ -31,7 +31,8 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.asm
 all: $(ALL_OBJECTS)
 	@mkdir -p $(BUILD_DIR)
 	@echo ""
-	ld -m elf_i386 -T linker.ld $(ALL_OBJECTS) -o $(BUILD_DIR)/$(TARGET).elf
+	@ld -m elf_i386 -T linker.ld $(ALL_OBJECTS) -o $(BUILD_DIR)/$(TARGET).elf
+	@echo " [3] LD ALL_OBJECTS"
 	objcopy -O binary $(BUILD_DIR)/$(TARGET).elf $(BUILD_DIR)/$(TARGET).bin	
 
 clean:
