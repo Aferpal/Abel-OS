@@ -54,7 +54,6 @@ pmm_alloc_page()
 
     /* return starting address */
     uint32_t pageid = (8 * i) + offset;
-	printk("PMM: Page %d is allocated\n", pageid);
     return (void*)(pageid*4096);
 }
 
@@ -69,7 +68,6 @@ pmm_get_page(void* ptr)
 void
 pmm_free_page_n(uint32_t pageid)
 {
-    printk("PMM: page %d is returned\n", pageid);
     uint32_t bitmap_index = pageid/8;
     uint8_t bitmap_offset = pageid % 8;
     uint8_t bitmask = 0x1 << (7 - bitmap_offset);

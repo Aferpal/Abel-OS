@@ -61,19 +61,21 @@ get_free_mem_range_for_bitmap(struct boot_info* b_info, uint64_t bitmap_len, uin
 
 	/* ALGORITHM */
 
-	for (int i = 0; i < b_info->n_entries && !bitmap_frame_found; i++) {
+	for (int i = 0; (i < b_info->n_entries) && !bitmap_frame_found; i++) {
 
 		current_frame = &(b_info->mmap_list_ptr[i]);
 
-		if (current_frame->type != MEM_USABLE || current_frame->length < bitmap_len) {
+		if (current_frame->type != MEM_USABLE || current_frame->length < bitmap_len || current_frame->base >= 0xffffffff) {
 			continue;
 		}
-
+		
 		/* CURRENT FRAME IS BIG ENOUGH AND USABLE */
 		current_frame_end = current_frame->base + current_frame->length;
 
 		bitmap_start_addr = current_frame->base;
 		
+		exit = 0;
+
 		while (!exit) {
 			if (frames_collide(bitmap_start_addr, bitmap_start_addr +  bitmap_len, bootstrap_start, bootstrap_end)) {
 				bitmap_start_addr = bootstrap_end;

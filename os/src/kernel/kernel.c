@@ -8,6 +8,8 @@
 #include "kernel/input/input.h"
 #include "kernel/pmm/pmm.h"
 #include "kernel/kalloc/kalloc.h"
+#include "kernel/scheduler/scheduler.h"
+#include "kernel/scheduler/proc.h"
 #include "stdint.h"
 
 void
@@ -42,6 +44,59 @@ kalloc_test()
 
 }
 
+void 
+main(void)
+{
+
+	uint64_t last_tick = 0;
+	uint64_t time = 0;
+	uint16_t pit_freq = pit_frequency();	
+	while (1) {
+		printk("Task 1 is running\n");
+		while (1) {
+			time = pit_ticks();
+		
+			if (time > (last_tick + 100)) {
+				last_tick = time;
+				break;
+			}
+		}
+	}
+
+	return;
+}
+
+void
+task2(void)
+{
+
+        uint64_t last_tick = 0;
+	uint64_t time = 0;
+	uint16_t pit_freq = pit_frequency();
+        while (1) {
+                printk("Task 2 is running\n");
+                while (1) {
+                        time = pit_ticks();
+
+                        if (time > (last_tick + pit_freq)) {
+                                last_tick = time;
+                                break;
+                        }
+                }
+        }
+
+        return;
+}
+
+void
+idle(void)
+{
+	printk("Idle task\n");
+	for(;;) {
+	
+	}
+}
+
 void
 kernel_main(struct boot_info* b)
 {
@@ -61,23 +116,31 @@ kernel_main(struct boot_info* b)
 
 	arch_enable_interrupts();
 
-	struct input_event event;
+	scheduler_init(0);
+	
+	uint32_t stack_init = proc_create_process(main);
 
-	printk("\n\n\n\n");
+	scheduler_add_process(stack_init, 0);
 
-	kalloc_test();
+	uint32_t stack_task2 = proc_create_process(task2);
 
-	while (1) {
-		if (!input_event_pop(&event)) {
-			continue;
-		}
+	scheduler_add_process(stack_task2, 0);
 
-		if (event.key_evt.type == KEY_PRESS) {
-			printk("Press: ");
-		} else {
-			printk("Release: ");
-		}
-		printk("%s\n", get_key_name(event.key_evt.value));
+	uint32_t stack_idle = proc_create_process(idle);
+
+	scheduler_add_process(stack_idle, 0);
+
+	scheduler_start();
+
+	printk("=================================================\n");
+	printk("***************** ERROR *************************\n");
+	printk("=================================================\n\n");
+	printk("Something very unexpected happened and this code\n");
+	printk("should never be reached, scheduler did not switch\n");
+	printk("to a first process after starting and returned\n\n\n\n");
+
+	for (;;) {
+
 	}
 
 }
