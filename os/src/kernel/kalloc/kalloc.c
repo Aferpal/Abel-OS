@@ -50,7 +50,7 @@ kalloc(uint32_t n)
 			prev = current;
 			current = (struct kobject_header*)current->next;
 		} else {
-			current = pmm_alloc_page();
+			current = (struct kobject_header*)pmm_alloc_page();
 			kobject_free_init(current, 4096);
 			
 			struct kobject_header* tmp = f_list;
@@ -115,7 +115,7 @@ k_try_collide(struct kobject_header* h1, struct kobject_header* h2)
 	}
 
 	if ((h1->size + (uint32_t)h1 + sizeof(struct kobject_header)) == (uint32_t)h2 &&
-	    pmm_get_page(h1) == pmm_get_page(h2)) {
+	    pmm_get_page((physical_address_t)h1) == pmm_get_page((physical_address_t)h2)) {
 		h1->size = h1->size + h2->size + sizeof(struct kobject_header);
 		h1->next = h2->next;
 	}
@@ -162,7 +162,7 @@ kfree(void* ptr)
 		} else {
 			prev->next = hdr->next;
 		}
-		pmm_free_page(hdr);
+		pmm_free_page((physical_address_t)hdr);
 	} else if (prev != 0) {
 		k_try_collide(prev, hdr);
 		if (prev->size == (4096 - sizeof(struct kobject_header))) {
@@ -174,7 +174,7 @@ kfree(void* ptr)
 			if (temp) {
 				temp->next = prev->next;
 			}
-			pmm_free_page(prev);
+			pmm_free_page((physical_address_t)prev);
 		}
 	}
 

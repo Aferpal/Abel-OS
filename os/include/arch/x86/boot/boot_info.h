@@ -9,8 +9,8 @@ struct boot_info {
 	uint16_t n_entries;
 	uint16_t padding;
 	
-	uint32_t bootstrap_start;
-	uint32_t bootstrap_end;
+	physical_address_t bootstrap_start;
+	physical_address_t bootstrap_end;
 };
 
 

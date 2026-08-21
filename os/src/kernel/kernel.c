@@ -106,6 +106,8 @@ kernel_main(struct boot_info* b)
 
 	pmm_init(b);
 
+	vmm_init(b);
+
 	init_int_subsystem();
 
 	input_subsystem_init();

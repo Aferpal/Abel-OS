@@ -86,7 +86,7 @@ scheduler_schedule()
 	// now cleared stack, use a helper stack? or forget
 	// since it is thrash
 	if (from->flags == PROC_EXIT) {
-		pmm_free_page((void*)from->stack_ptr);
+		pmm_free_page((physical_address_t)from->stack_ptr);
 		impl.dequeue_proc(from->id);
 		from = &exit_helper;
 	}

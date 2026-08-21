@@ -11,4 +11,7 @@ typedef long long int64_t;
 typedef unsigned long long uint64_t;
 typedef uint32_t ptr_t;
 
+typedef ptr_t physical_address_t;
+typedef ptr_t virtual_address_t;
+
 #endif

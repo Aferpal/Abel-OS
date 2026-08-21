@@ -5,7 +5,7 @@
 uint32_t
 proc_create_process(void (*p_start)(void))
 {
-	void* stack_end = pmm_alloc_page();
+	void* stack_end = (void*)pmm_alloc_page();
 	
 	if (stack_end == 0) {
 		return 0;

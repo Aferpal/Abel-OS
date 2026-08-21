@@ -34,7 +34,7 @@ get_maximum_usable_mem_address_from_e820(struct boot_info* b_info)
 }
 
 static uint8_t
-get_free_mem_range_for_bitmap(struct boot_info* b_info, uint64_t bitmap_len, uint64_t* bitmap_addr)
+get_free_mem_range_for_bitmap(struct boot_info* b_info, uint64_t bitmap_len, physical_address_t* bitmap_addr)
 {
 
 	/* IMPORTANT RESERVED FRAMES */
@@ -110,7 +110,7 @@ get_free_mem_range_for_bitmap(struct boot_info* b_info, uint64_t bitmap_len, uin
 		return -1;
 	}
 
-	*bitmap_addr = bitmap_start_addr;
+	*bitmap_addr = (physical_address_t)(bitmap_start_addr & 0xffffffff);
 	return 0;
 	
 }
@@ -164,7 +164,7 @@ mark_range_as_usable(struct physical_memory_map* pmm, uint32_t base, uint32_t le
 }
 
 static void
-mark_range_as_used(struct physical_memory_map* pmm, uint32_t base, uint32_t length)
+mark_range_as_used(struct physical_memory_map* pmm, physical_address_t base, uint32_t length)
 {
 
 	/* base index rounds upwards always, we can't free a page from its upper half only */
@@ -253,17 +253,21 @@ arch_pmm_init(struct boot_info* b_info, struct physical_memory_map* pmm)
 	// big enough space in memory. We also need to consider the bootstrap 
 	// structures needed to be preserverd in memory ( gdt ? )
 
-	uint64_t bitmap_addr;
+	physical_address_t bitmap_addr;
 
 	uint8_t rc = get_free_mem_range_for_bitmap(b_info, bytes_to_alloc, &bitmap_addr);
 
-	if (rc != 0 || bitmap_addr >= 0xffffffff) {
+	if (rc != 0) {
 		printk("[ PMM ] Error: no range was found to place bitmap, not enough memory\n");
 		/* panic ? */
 		return;
 	}
 
-	printk("[ PMM ] Bitmap stored in %l-%l\n", bitmap_addr, bitmap_addr+bytes_to_alloc);
+	// we need to convert this physical memory into a virtual address to be stored, we use map?
+	// but to use vmm we need pmm first...
+	// should this be done before da jump?
+
+	printk("[ PMM ] Bitmap stored in %x-%x\n", bitmap_addr, bitmap_addr+bytes_to_alloc);
 	
 	pmm->bitmap = (uint8_t*)(uint32_t)bitmap_addr;
 	pmm->bitmap_len = bytes_to_alloc;
@@ -276,7 +280,7 @@ arch_pmm_init(struct boot_info* b_info, struct physical_memory_map* pmm)
 	mark_bitmap_usable_from_e820(b_info, pmm);
 
 	// and finally mark as used again boot/e820_list/kernel/bitmap pages
-	mark_range_as_used(pmm, (uint32_t)(b_info->bootstrap_start), (uint32_t)(b_info->bootstrap_end -  b_info->bootstrap_start));
+	mark_range_as_used(pmm, (b_info->bootstrap_start), (b_info->bootstrap_end -  b_info->bootstrap_start));
 	mark_range_as_used(pmm, (uint32_t)(b_info->mmap_list_ptr), (uint32_t)(b_info->n_entries*sizeof(struct e820_frame_info)));
 	mark_range_as_used(pmm, (uint32_t)(&kernel_start), (uint32_t)((uint32_t)&kernel_end - (uint32_t)&kernel_start));
 	mark_range_as_used(pmm, (uint32_t)(pmm->bitmap), (uint32_t)(pmm->bitmap_len));
