@@ -641,6 +641,9 @@ gdt:
   ; Third entry, data
   dq 0x00cf92000000ffff
 
+  ; Fourth entry, data for temporal pmode
+gdt_pmode_dat  dq 0x00cf92000000ffff
+
   ; Pre-reserved
   times 16 dq 0
 
@@ -654,6 +657,13 @@ kheader_cpy:
   KSIZE dd 0x0
   KENTRYOFF dd 0x0
   dw 0x08
+
+pmode_jmp_s:
+  pmode_entry_off dd stage2_pmode_entry
+  dw 0x08
+
+rmode_segment:
+   dw 0x00
 
 align 4
 boot_info_struct:
@@ -859,11 +869,16 @@ prepare_protected_mode:
   or al, 010b
   out 0x92, al
 
-
   mov ax, cs
   shl ax, 4
 
+  add word [pmode_jmp_s], ax
+
   add word [gdt_descriptor + 2], ax
+
+  mov word [rmode_segment], ax
+
+  mov word [gdt_pmode_dat + 2], ax
 
   lgdt [gdt_descriptor]
 
@@ -871,15 +886,7 @@ prepare_protected_mode:
   or eax, 1
   mov cr0, eax
 
-  
-  mov eax, cs
-  shl eax, 4
-
-  add [bootstrap_end], eax
-
-  add eax, boot_info_struct
-
-  jmp far dword [KENTRYOFF]
+  jmp far dword [pmode_jmp_s]
 
 stage2_kernel_header_fatal_error:
   mov al, 'K'
@@ -917,6 +924,33 @@ stage2_mmap_fatal_error:
   
   hlt
   jmp stage2_mmap_fatal_error
+
+
+
+;; ===========================================
+;; PROTECTED MODE 
+;; ===========================================
+
+bits 32
+
+stage2_pmode_entry:
+  mov eax, 0x18
+  mov es, eax
+  mov fs, eax
+  mov gs, eax
+  mov ss, eax
+
+  xor eax, eax
+  movzx eax, word [rmode_segment]
+
+  add [bootstrap_end], eax
+
+  add eax, boot_info_struct
+
+  jmp far dword [KENTRYOFF]
+
+  hlt
+  jmp stage2_pmode_entry
 
 align 4
 e820_buffer: ; this is just a tag meaning the end of real code. 
