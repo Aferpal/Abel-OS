@@ -2,8 +2,12 @@ ENTRY(kernel_entry)
 
 SECTIONS
 {
-    . = 0x10000;
+    . = 0xC0400000;
     
+    kernel_virt_start = .;
+
+    kernel_phys_start = 0x00010000;
+
     kernel_start = .;
 
     .header :
@@ -36,5 +40,7 @@ SECTIONS
 	    *(.bss*)
     }
 
+    . = ALIGN(4096);
     kernel_end = .;
+
 }

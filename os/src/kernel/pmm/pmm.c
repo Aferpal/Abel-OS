@@ -27,7 +27,7 @@ pmm_init(struct boot_info* b)
     printk(" * PMM INITIALISED\n");
 }
 
-void*
+physical_address_t
 pmm_alloc_page()
 {
     uint32_t i = 0;
@@ -54,15 +54,13 @@ pmm_alloc_page()
 
     /* return starting address */
     uint32_t pageid = (8 * i) + offset;
-    return (void*)(pageid*4096);
+    return (physical_address_t)(pageid*4096);
 }
 
 uint32_t 
-pmm_get_page(void* ptr)
+pmm_get_page(physical_address_t ptr)
 {
-	uint32_t p = (uint32_t)ptr;
-	p = p/4096;
-	return p;
+	return ptr/4096;
 
 }
 void
@@ -75,12 +73,12 @@ pmm_free_page_n(uint32_t pageid)
 }
 
 void
-pmm_free_page(void* ptr)
+pmm_free_page(physical_address_t ptr)
 {
     pmm_free_page_n(pmm_get_page(ptr));
 }
 
-void*
+physical_address_t
 pmm_alloc_pages(uint32_t n_pages)
 {
     /* unimplemented yet */

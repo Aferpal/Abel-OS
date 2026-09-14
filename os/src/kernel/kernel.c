@@ -97,14 +97,28 @@ idle(void)
 	}
 }
 
+static void
+early_arch_setup(struct boot_info* b)
+{
+	pmm_init(b);
+	while (1) {
+	}
+	//vmm_init(b);
+	
+	/* map the pmm bitmap */
+	//pmm_bitmap_remap();
+
+	//vga_driver_init();
+}
+
 void
 kernel_main(struct boot_info* b)
 {
 	clear_screen();
 	printk("Abel-OS\n\n\t");
 	printk("Welcome to my operating system!\n\n");
-
-	pmm_init(b);
+	
+	early_arch_setup(b);
 
 	init_int_subsystem();
 

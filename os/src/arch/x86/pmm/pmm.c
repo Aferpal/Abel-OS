@@ -5,6 +5,8 @@
 
 extern uint8_t* kernel_start;
 extern uint8_t* kernel_end;
+extern uint8_t* kernel_virt_start;
+extern uint8_t* kernel_phys_start;
 
 static uint8_t
 frames_collide(uint64_t x_start, uint64_t x_end, uint64_t y_start, uint64_t y_end)
@@ -17,7 +19,7 @@ static uint64_t
 get_maximum_usable_mem_address_from_e820(struct boot_info* b_info)
 {
 	uint64_t highest_address = 0;
-    uint64_t local_top_address = 0;
+	uint64_t local_top_address = 0;
 
 	struct e820_frame_info* current_frame = 0;
 
@@ -44,8 +46,9 @@ get_free_mem_range_for_bitmap(struct boot_info* b_info, uint64_t bitmap_len, uin
 	uint64_t e820_table_start = (uint64_t) (uint32_t) b_info->mmap_list_ptr;
 	uint64_t e820_table_end = (e820_table_start + b_info->n_entries * sizeof(struct e820_frame_info));
 
-	uint64_t kernel_64b_start = (uint64_t) (uint32_t) &kernel_start;
-	uint64_t kernel_64b_end = (uint64_t) (uint32_t) &kernel_end;
+	uint64_t kernel_64b_start = (uint64_t) (uint32_t) &kernel_phys_start;
+	uint64_t kernel_64b_end = (uint64_t) (uint32_t) ((&kernel_end - &kernel_virt_start) + &kernel_phys_start);
+	kernel_64b_end += (4096*4);
 
 	/**/
 
@@ -117,7 +120,7 @@ get_free_mem_range_for_bitmap(struct boot_info* b_info, uint64_t bitmap_len, uin
 
 
 static void
-mark_range_as_usable(struct physical_memory_map* pmm, uint32_t base, uint32_t length)
+mark_range_as_usable(struct physical_memory_map* pmm, physical_address_t base, uint32_t length)
 {
 
 	/* 
@@ -164,7 +167,7 @@ mark_range_as_usable(struct physical_memory_map* pmm, uint32_t base, uint32_t le
 }
 
 static void
-mark_range_as_used(struct physical_memory_map* pmm, uint32_t base, uint32_t length)
+mark_range_as_used(struct physical_memory_map* pmm, physical_address_t base, uint32_t length)
 {
 
 	/* base index rounds upwards always, we can't free a page from its upper half only */
@@ -219,7 +222,11 @@ mark_bitmap_usable_from_e820(struct boot_info* b_info, struct physical_memory_ma
 	}
 }
 
-
+/* this function is going to be used only at the very beginning initialisation.
+ * It strictly depends on the first virtual memory map with identity mapping the
+ * first 4MB at the very least. Thanks to that in this function physical addresses
+ * and virtual addresses can be used almost the same way.
+ */
 void
 arch_pmm_init(struct boot_info* b_info, struct physical_memory_map* pmm)
 {
@@ -265,22 +272,33 @@ arch_pmm_init(struct boot_info* b_info, struct physical_memory_map* pmm)
 
 	printk("[ PMM ] Bitmap stored in %l-%l\n", bitmap_addr, bitmap_addr+bytes_to_alloc);
 	
-	pmm->bitmap = (uint8_t*)(uint32_t)bitmap_addr;
+	// while we first init the bitmap, we set it to its physical address
+	// however at the end of the function we resolve it to its virtual address
+	pmm->bitmap_phy_addr = (physical_address_t)bitmap_addr;
+	pmm->bitmap = (uint8_t*)pmm->bitmap_phy_addr;
 	pmm->bitmap_len = bytes_to_alloc;
 	pmm->n_pages = pages_to_alloc;
 
 	// set all to 1 meaning everything is used
+	// we can access this because we keep the identity mapping
 	memset(0xff, (void*)pmm->bitmap, pmm->bitmap_len);
 
 	// now we free all available/usable frames from e820
 	mark_bitmap_usable_from_e820(b_info, pmm);
 
-	// and finally mark as used again boot/e820_list/kernel/bitmap pages
+	// and finally mark as used again boot/e820_list/kernel/bitmap pages/page directory/page tables
+	// do i really need the e820 anymore? not really, neither should i the bootstrap end if i correctly copy
+	// the boot params and gdt, but for now let's leave it like that
 	mark_range_as_used(pmm, (uint32_t)(b_info->bootstrap_start), (uint32_t)(b_info->bootstrap_end -  b_info->bootstrap_start));
-	mark_range_as_used(pmm, (uint32_t)(b_info->mmap_list_ptr), (uint32_t)(b_info->n_entries*sizeof(struct e820_frame_info)));
-	mark_range_as_used(pmm, (uint32_t)(&kernel_start), (uint32_t)((uint32_t)&kernel_end - (uint32_t)&kernel_start));
+	//mark_range_as_used(pmm, (uint32_t)(b_info->mmap_list_ptr), (uint32_t)(b_info->n_entries*sizeof(struct e820_frame_info)));
+	//we add a 4096*4 for the four pages we know we have allocated. These are the page directory, the identity map of first 4MB
+	//and an extra page prepared for kernel core structures
+	mark_range_as_used(pmm, (uint32_t)(&kernel_phys_start), (uint32_t)((uint32_t)&kernel_end - (uint32_t)&kernel_start + 4096*4));
 	mark_range_as_used(pmm, (uint32_t)(pmm->bitmap), (uint32_t)(pmm->bitmap_len));
 
 	// and mark also page 0 as used for safety and coherency reasons
 	pmm->bitmap[0] = pmm->bitmap[0] | 0x80;
+
+	// we will later need a virtual address for the bitmap
+	pmm->bitmap = 0;
 }
