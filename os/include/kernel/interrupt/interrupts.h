@@ -6,4 +6,8 @@
 
 void init_int_subsystem();
 
+void enable_interrupts();
+
+void disable_interrupts();
+
 #endif

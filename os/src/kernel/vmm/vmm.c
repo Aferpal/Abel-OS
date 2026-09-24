@@ -1,19 +1,49 @@
+#include "kernel/pmm/pmm.h"
 #include "kernel/vmm/vmm.h"
-#include "kernel/arch/vmm_hal.h"
+#include "arch/vmm_hal.h"
 
 void 
 vmm_init(struct boot_info* b)
 {
-	// we have to modify our very early and well known
-	// base page directory
-	// we know for well that right after kernel_end we 
-	// have our page directory. After that we have the identity
-	// ( it will be used for swap later on ), a page for core data
-	// ( this one will include IO, pmm bitmap, etc... ) and a page 
-	// for the kernel code / data. This last one is the only one
-	// we will have ready. The other two will be left linked to the
-	// page directory but cleaned up
-	
-	// this is like this in x86 so we delegate this job to the hal ( arch )
 	arch_vmm_init(b);
+}
+
+ptr_t
+vmm_map_core(physical_address_t base, uint32_t len)
+{
+	return arch_vmm_map_core(base, len);
+}
+
+void
+vmm_map(struct vmm_addr_space* addr_space, ptr_t vaddr, physical_address_t paddr)
+{
+	arch_vmm_map(addr_space, vaddr, paddr);
+}
+
+ptr_t
+vmm_alloc_page()
+{
+	physical_address_t phy_addr = pmm_alloc_page();
+
+	ptr_t virt_addr	= arch_vmm_find_unused_page_kernel();
+
+	vmm_map(arch_vmm_current_addr_space(), virt_addr, phy_addr);
+	
+	return virt_addr;
+}
+
+void
+vmm_free_page(ptr_t p)
+{
+	physical_address_t phy = arch_vmm_virt_to_phys(p);
+	
+	arch_vmm_dealloc_page(p);
+	
+	pmm_free_page(phy);
+}
+
+uint32_t
+vmm_get_page(ptr_t p)
+{
+	return (uint32_t)(p/4096);
 }

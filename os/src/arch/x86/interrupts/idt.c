@@ -6,8 +6,6 @@ static struct idt_entry idt[256];
 
 static struct idt_descriptor idtr;
 
-
-
 void (*isr_stubs[32])() =
 {
     isr0,

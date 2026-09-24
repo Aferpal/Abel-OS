@@ -1,6 +1,5 @@
 #include <arch/pmm_hal.h>
 #include <arch/x86/boot/boot_info.h>
-#include <kernel/printk.h>
 #include <mem.h>
 
 extern uint8_t* kernel_start;
@@ -235,11 +234,7 @@ arch_pmm_init(struct boot_info* b_info, struct physical_memory_map* pmm)
 	
 	uint64_t highest_address = 0;
 
-	printk("[ PMM ] Calculating total system memory\n");
-
 	highest_address = get_maximum_usable_mem_address_from_e820(b_info);
-
-	printk("[ PMM ] Up to %l memory available\n", highest_address);
 
 	// now highest_address contains the highest address implicit in the e820 list
 	// we will consider it as the ram limit
@@ -265,13 +260,10 @@ arch_pmm_init(struct boot_info* b_info, struct physical_memory_map* pmm)
 	uint8_t rc = get_free_mem_range_for_bitmap(b_info, bytes_to_alloc, &bitmap_addr);
 
 	if (rc != 0 || bitmap_addr >= 0xffffffff) {
-		printk("[ PMM ] Error: no range was found to place bitmap, not enough memory\n");
 		/* panic ? */
 		return;
 	}
 
-	printk("[ PMM ] Bitmap stored in %l-%l\n", bitmap_addr, bitmap_addr+bytes_to_alloc);
-	
 	// while we first init the bitmap, we set it to its physical address
 	// however at the end of the function we resolve it to its virtual address
 	pmm->bitmap_phy_addr = (physical_address_t)bitmap_addr;

@@ -1,5 +1,5 @@
 #include "kernel/kalloc/kalloc.h"
-#include "kernel/pmm/pmm.h"
+#include "kernel/vmm/vmm.h"
 
 #define MIN_ALLOCATION_SIZE 16
 
@@ -16,7 +16,7 @@ kobject_free_init(struct kobject_header* node, uint32_t k_size)
  * kalloc
  *
  * current limitations: unable to alloc more than 4096 - sizeof(struct kobject_header) bytes
- * waiting for implementation of pmm_alloc_pages(n)
+ * waiting for implementation of vmm_alloc_pages(n)
  */
 void*
 kalloc(uint32_t n)
@@ -36,7 +36,7 @@ kalloc(uint32_t n)
 	// normalize, we always want to alloc an even amount of mem
 	// in order to use our super advanced system of occ/free distinction
 	if (f_list == 0) {
-		f_list = (struct kobject_header*)pmm_alloc_page();
+		f_list = (struct kobject_header*)vmm_alloc_page();
 		kobject_free_init(f_list, 4096);
 	}
 
@@ -50,7 +50,7 @@ kalloc(uint32_t n)
 			prev = current;
 			current = (struct kobject_header*)current->next;
 		} else {
-			current = pmm_alloc_page();
+			current = (struct kobject_header*)vmm_alloc_page();
 			kobject_free_init(current, 4096);
 			
 			struct kobject_header* tmp = f_list;
@@ -115,7 +115,7 @@ k_try_collide(struct kobject_header* h1, struct kobject_header* h2)
 	}
 
 	if ((h1->size + (uint32_t)h1 + sizeof(struct kobject_header)) == (uint32_t)h2 &&
-	    pmm_get_page(h1) == pmm_get_page(h2)) {
+	    vmm_get_page((ptr_t)h1) == vmm_get_page((ptr_t)h2)) {
 		h1->size = h1->size + h2->size + sizeof(struct kobject_header);
 		h1->next = h2->next;
 	}
@@ -162,7 +162,7 @@ kfree(void* ptr)
 		} else {
 			prev->next = hdr->next;
 		}
-		pmm_free_page(hdr);
+		vmm_free_page((ptr_t)hdr);
 	} else if (prev != 0) {
 		k_try_collide(prev, hdr);
 		if (prev->size == (4096 - sizeof(struct kobject_header))) {
@@ -174,7 +174,7 @@ kfree(void* ptr)
 			if (temp) {
 				temp->next = prev->next;
 			}
-			pmm_free_page(prev);
+			vmm_free_page((ptr_t)prev);
 		}
 	}
 

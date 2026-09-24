@@ -1,11 +1,11 @@
 #include "kernel/scheduler/scheduler.h"
 #include "arch/scheduler_hal.h"
-#include "kernel/pmm/pmm.h"
+#include "kernel/vmm/vmm.h"
 
 uint32_t
 proc_create_process(void (*p_start)(void))
 {
-	void* stack_end = pmm_alloc_page();
+	void* stack_end = (void*)vmm_alloc_page();
 	
 	if (stack_end == 0) {
 		return 0;

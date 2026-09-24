@@ -3,6 +3,11 @@
 
 #include "stdint.h"
 
+#define X86_PAGE_SIZE         4096
+#define X86_PAGE_ENTRY_SIZE   4
+#define X86_PAGE_N_ENTRIES    (X86_PAGE_SIZE/X86_PAGE_ENTRY_SIZE)
+
+#define X86_PAGE_NULL_ENTRY   0x0000
 #define X86_PAGE_FLAG_PRESENT 0x0001
 #define X86_PAGE_FLAG_RW      0x0002
 #define X86_PAGE_FLAG_U_PERM  0x0004
@@ -28,6 +33,11 @@
 #define X86_VIRT_ADDR_PTI_MASK  0x003ff000
 #define X86_VIRT_ADDR_PTI_RSHFT 12
 
+#define X86_ADDR_TO_PDI(addr) ((addr & X86_VIRT_ADDR_PDI_MASK) >> X86_VIRT_ADDR_PDI_RSHFT)
+
+#define X86_ADDR_TO_PTI(addr) ((addr & X86_VIRT_ADDR_PTI_MASK) >> X86_VIRT_ADDR_PTI_RSHFT)
+
+
 #define X86_PDE_PT_MASK  0xfffff000
 
 
@@ -36,29 +46,37 @@
  * of the page directory on its last entry for this.
  */
 
-#define X86_PAGE_DIRECTORY_ADDR 0xfffff000
+#define X86_KERNEL_PAGE_IDX    0x301
 
-#define X86_KERNEL_PAGE_ADDR    0xffff1000
+#define X86_IO_PAGE_IDX        0x300
 
-#define X86_IO_PAGE_ADDR        0xffff0000
+#define X86_SWAP_PAGE_IDX      0x3fe
 
-#define X86_SWAP_PAGE_ADDR      0xffffe000
+#define X86_CURRENT_ADDR_SPACE  0xffc00000
 
 typedef physical_address_t page_table_entry_t;
 
 struct page_table {
-	page_table_entry_t ptes[1024];
+	page_table_entry_t ptes[X86_PAGE_N_ENTRIES];
 };
 
 typedef physical_address_t page_directory_entry_t;
 
 struct page_directory {
-	page_directory_entry_t pdes[1024];
+	page_directory_entry_t pdes[X86_PAGE_N_ENTRIES];
 };
 
 
 struct vmm_addr_space {
-	struct page_directory pd;
+	struct page_table p_tables[(X86_PAGE_N_ENTRIES - 1)];
+	struct page_directory p_dir;
+};
+
+struct vmm_core_data {
+	physical_address_t k_page_dir_addr;
+	physical_address_t k_swap_page_table_addr;
+	physical_address_t k_io_page_table_addr;
+	physical_address_t k_code_page_table_addr;
 };
 
 #endif

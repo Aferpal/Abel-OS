@@ -2,6 +2,7 @@
 #include "arch/x86/io.h"
 #include "drivers/keyboard.h"
 #include "arch/x86/stdarg.h"
+#include "kernel/vmm/vmm.h"
 #include "string.h"
 #include "mem.h"
 #include <stdint.h>
@@ -10,6 +11,14 @@ static char *video=(char*) 0xb8000;
 
 static short cur_pos_x = 0;
 static short cur_pos_y = 0;
+
+void
+printk_setup()
+{
+	video = (char*)vmm_map_core(0xb8000, 2*80*25);
+	cur_pos_x = 0;
+	cur_pos_y = 0;
+}
 
 void
 clear_line(uint32_t y)
@@ -79,6 +88,7 @@ advance_char_n(short n)
 		cur_pos_y = cur_pos_y + (cur_pos_x / 80);
 		if (cur_pos_y > 24) {
 			scroll_screen(cur_pos_y - 24);
+			cur_pos_y = 24;
 		}
 		cur_pos_x = cur_pos_x % 80;
 	}

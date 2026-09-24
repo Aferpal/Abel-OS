@@ -1,6 +1,6 @@
 #include <kernel/pmm/pmm.h>
 #include <arch/pmm_hal.h>
-#include <kernel/printk.h>
+#include <kernel/vmm/vmm.h>
 
 struct physical_memory_map pmm_mmap;
 
@@ -22,9 +22,7 @@ find_first_zero(uint8_t byte)
 void
 pmm_init(struct boot_info* b)
 {
-    printk(" * PMM Init\n");
     arch_pmm_init(b, &pmm_mmap);
-    printk(" * PMM INITIALISED\n");
 }
 
 physical_address_t
@@ -76,6 +74,18 @@ void
 pmm_free_page(physical_address_t ptr)
 {
     pmm_free_page_n(pmm_get_page(ptr));
+}
+
+void
+pmm_remap_self_data()
+{
+	if (pmm_mmap.bitmap != 0) {
+		// return that memory
+	}
+
+	pmm_mmap.bitmap = (uint8_t*)vmm_map_core(pmm_mmap.bitmap_phy_addr, 
+	                                        pmm_mmap.bitmap_len);
+
 }
 
 physical_address_t

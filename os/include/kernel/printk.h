@@ -7,4 +7,7 @@ void put_char(char c);
 void remove_char();
 
 void printk(char* fmt, ...);
+
+void printk_setup();
+
 #endif

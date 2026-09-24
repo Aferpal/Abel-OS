@@ -1,12 +1,9 @@
 #include "kernel/printk.h"
+#include "arch/arch_hal.h"
 #include "drivers/keyboard.h"
 #include "kernel/interrupt/interrupts.h"
-#include "arch/interrupt_hal.h"
-#include "kernel/printk.h"
 #include "arch/x86/timer/pit.h"
-#include "drivers/keyboard.h"
 #include "kernel/input/input.h"
-#include "kernel/pmm/pmm.h"
 #include "kernel/kalloc/kalloc.h"
 #include "kernel/scheduler/scheduler.h"
 #include "kernel/scheduler/proc.h"
@@ -23,7 +20,8 @@ kalloc_test()
 	void* p4 = kalloc(1024);
 	void* p5 = kalloc(128);
 	void* p6 = kalloc(128);
-	printk("P1: %x, P2: %x, P3: %x, P4: %x, P5: %x, P6: %x\n", p1, p2, p3, p4, p5, p6);
+	printk("P1: %x, P2: %x, P3: %x, P4: %x", p1, p2, p3, p4);
+	printk("P5: %x, P6: %x\n", p5, p6);
 	kfree(p4);
 	printk("==============Test 2==============\n");
 	p4 = kalloc(1024);
@@ -41,7 +39,8 @@ kalloc_test()
 	p1 = kalloc(4075);
 	p2 = kalloc(5);
 	printk("P1: %x, P2: %x\n", p1, p2);
-
+	kfree(p1);
+	kfree(p2);
 }
 
 void 
@@ -97,38 +96,30 @@ idle(void)
 	}
 }
 
-static void
-early_arch_setup(struct boot_info* b)
-{
-	pmm_init(b);
-	while (1) {
-	}
-	//vmm_init(b);
-	
-	/* map the pmm bitmap */
-	//pmm_bitmap_remap();
-
-	//vga_driver_init();
-}
-
 void
 kernel_main(struct boot_info* b)
 {
+
+	arch_early_setup(b);
+
+	printk_setup();
+
 	clear_screen();
 	printk("Abel-OS\n\n\t");
 	printk("Welcome to my operating system!\n\n");
+	printk(" [ SETUP ] Setup Complete OK!\n");
 	
-	early_arch_setup(b);
-
 	init_int_subsystem();
-
+	
 	input_subsystem_init();
 
 	pit_init();
 
 	ps2_keyboard_init();
 
-	arch_enable_interrupts();
+	enable_interrupts();
+	
+	/* what is left ? drivers + filesystem I guess */
 
 	scheduler_init(0);
 	
@@ -139,6 +130,10 @@ kernel_main(struct boot_info* b)
 	uint32_t stack_task2 = proc_create_process(task2);
 
 	scheduler_add_process(stack_task2, 0);
+
+	uint32_t stack_ktest = proc_create_process(kalloc_test);
+
+	scheduler_add_process(stack_ktest, 0);
 
 	uint32_t stack_idle = proc_create_process(idle);
 

@@ -1,8 +1,7 @@
 #include "kernel/scheduler/scheduler.h"
 #include "kernel/scheduler/fifo.h"
-#include "kernel/pmm/pmm.h"
-#include "kernel/printk.h"
 #include "kernel/interrupt/irq.h"
+#include "kernel/vmm/vmm.h"
 
 extern void arch_switch_context(struct pcb*, struct pcb*);
 
@@ -86,7 +85,7 @@ scheduler_schedule()
 	// now cleared stack, use a helper stack? or forget
 	// since it is thrash
 	if (from->flags == PROC_EXIT) {
-		pmm_free_page((void*)from->stack_ptr);
+		vmm_free_page((ptr_t)from->stack_ptr);
 		impl.dequeue_proc(from->id);
 		from = &exit_helper;
 	}

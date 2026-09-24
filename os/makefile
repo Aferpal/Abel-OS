@@ -20,7 +20,7 @@ TARGET = kernel
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	@mkdir -p $(dir $@)
-	@gcc -I$(INC_DIR) -m32 -ffreestanding -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -g -O0 -c $< -o $@
+	@gcc -I$(INC_DIR) -m32 -ffreestanding -fno-pie -fno-stack-protector -fno-asynchronous-unwind-tables -fno-builtin -g -O0 -c $< -o $@
 	@echo " [1] CC $< -o $@"
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.asm
@@ -33,7 +33,9 @@ all: $(ALL_OBJECTS)
 	@echo ""
 	@ld -m elf_i386 -T linker.ld $(ALL_OBJECTS) -o $(BUILD_DIR)/$(TARGET).elf
 	@echo " [3] LD ALL_OBJECTS"
-	objcopy -O binary $(BUILD_DIR)/$(TARGET).elf $(BUILD_DIR)/$(TARGET).bin	
+	@objcopy -O binary $(BUILD_DIR)/$(TARGET).elf $(BUILD_DIR)/$(TARGET).bin
+	@echo " [4] INSTALL kernel.elf -o kernel.bin"
+	@echo ""
 
 clean:
 	rm -rf $(BUILD_DIR)

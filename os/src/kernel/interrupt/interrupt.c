@@ -10,7 +10,7 @@ interrupt_dispatch(struct interrupt_frame *frame)
 
 	if (arch_vector_is_exception(frame)) {
 
-        arch_exception_dispatch(frame);
+		arch_exception_dispatch(frame);
 
 	} else if (arch_vector_is_irq(frame)) {
 
@@ -23,7 +23,18 @@ void
 init_int_subsystem()
 {
 
-    arch_init_int_subsytem();
-
+	arch_init_int_subsytem();
     
+}
+
+void
+enable_interrupts()
+{
+	arch_enable_interrupts();
+}
+
+void
+disable_interrupts()
+{
+	arch_disable_interrupts();
 }

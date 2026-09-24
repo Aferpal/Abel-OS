@@ -19,7 +19,7 @@ arch_disable_interrupts()
 void
 arch_init_int_subsytem()
 {
-    printk(" * INIT IDT\n");
+	printk(" * INIT IDT\n");
 
 	idt_init();
 	
@@ -36,5 +36,4 @@ arch_init_int_subsytem()
 	printk(" * STI\n");
 
 	sti();
-
 }
