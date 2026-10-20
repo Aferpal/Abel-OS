@@ -1,4 +1,5 @@
 #include "kernel/scheduler/scheduler.h"
+#include "arch/x86/scheduler/types.h"
 
 void* 
 arch_proc_prepare_stack(void (*p_start)(void), void* stack_start)

@@ -19,9 +19,16 @@ arch_switch_context:
 
   ; struct pcb* next
   mov edx, [esp + 28]
-  ; esp = next->stack_ptr
-  mov esp, [edx + 8]
- 
+
+  ; mov eax, cr3
+  mov eax, [edx + 20]
+  ; mov ecx, esp
+  mov ecx, [edx + 8]
+
+  mov cr3, eax ; now virtual space is switched
+  mov sp, ecx ; now stack is pointer somewhere valid 
+ 		; we can pop safely
+
   pop edi
   pop esi
   pop ebx

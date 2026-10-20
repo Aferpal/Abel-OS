@@ -40,12 +40,13 @@ scheduler_init(struct sched_ops* ops)
 }
 
 void
-scheduler_add_process(uint32_t stack, uint32_t priority)
+scheduler_add_process(struct pcb* p)
 {
-	struct pcb p = { .id = last_pid++, .priority = priority, .stack_ptr = stack, .status = READY, .runtime = 0 };
-	
+	p->id = last_pid++;
+	p->status = READY;
+	p->runtime = 0;
 	if (impl.enqueue_proc) {
-		impl.enqueue_proc(&p);
+		impl.enqueue_proc(p);
 	}
 }
 
