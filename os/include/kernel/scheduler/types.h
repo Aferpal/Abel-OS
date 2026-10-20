@@ -23,6 +23,7 @@ struct pcb {
 	uint16_t flags;
 	uint16_t status;
 	uint32_t runtime;
+	uint32_t cr3;
 };
 
 struct sched_ops {
@@ -31,17 +32,6 @@ struct sched_ops {
 	uint8_t      (*dequeue_proc)(pid_t);
 	struct pcb*  (*get_next_proc)(struct pcb*);
 	uint8_t      (*tick)(struct pcb*);
-};
-
-// what should be on a valid stack to switch to
-struct sched_frame {
-	uint32_t edi;
-	uint32_t esi;
-	uint32_t ebx;
-	uint32_t ebp;
-	uint32_t eflags;
-	uint32_t eip; 
-	uint32_t exit;
 };
 
 #endif

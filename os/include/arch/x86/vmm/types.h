@@ -72,6 +72,10 @@ struct vmm_addr_space {
 	struct page_directory p_dir;
 };
 
+struct vmm_arch_data {
+	uint32_t cr3;
+};
+
 struct vmm_core_data {
 	physical_address_t k_page_dir_addr;
 	physical_address_t k_swap_page_table_addr;

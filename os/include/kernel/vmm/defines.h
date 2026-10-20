@@ -1,0 +1,15 @@
+#ifndef _KERNEL_VMM_DEFINES_H_
+#define _KERNEL_VMM_DEFINES_H_
+
+#define VMM_REGION_UNUSBALE     0x0
+#define VMM_REGION_USED         0x1
+#define VMM_REGION_USABLE       0x2
+
+#define VMM_PROT_USER    0x00000000
+#define VMM_PROT_KERNEL  0x00000001
+
+#define VMM_PROT_WRITE   0x00000000
+#define VMM_PROT_READ	 0x00000002
+#define VMM_PROT_EXEC    0x00000004
+
+#endif
