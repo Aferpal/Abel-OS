@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <kernel/boot/types.h>
 
-void pmm_init(struct boot_info*);
+uint8_t pmm_init(struct boot_info*);
 
 physical_address_t pmm_alloc_page();
 

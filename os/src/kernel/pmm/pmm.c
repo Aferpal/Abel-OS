@@ -19,10 +19,10 @@ find_first_zero(uint8_t byte)
     return res;
 }
 
-void
+uint8_t
 pmm_init(struct boot_info* b)
 {
-    arch_pmm_init(b, &pmm_mmap);
+    return arch_pmm_init(b, &pmm_mmap);
 }
 
 physical_address_t

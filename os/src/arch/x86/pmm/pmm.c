@@ -47,10 +47,7 @@ get_free_mem_range_for_bitmap(struct boot_info* b_info, uint64_t bitmap_len, uin
 
 	uint64_t kernel_64b_start = (uint64_t) (uint32_t) &kernel_phys_start;
 	uint64_t kernel_64b_end = (uint64_t) (uint32_t) ((&kernel_end - &kernel_virt_start) + &kernel_phys_start);
-	kernel_64b_end += (4096*4);
-
-	/**/
-
+	kernel_64b_end += (4096*4); /* this line is key, we add the space required by the boot virtual pages... */
 
 	/* VARS NEEDED FOR ALG */
 	uint64_t current_frame_end;
@@ -146,7 +143,6 @@ mark_range_as_usable(struct physical_memory_map* pmm, physical_address_t base, u
 
 	if (base_bitmap_index == end_bitmap_index) {
 		/* special case where they share index */
-		/* */
 		uint8_t final_mask = base_mask | end_mask;
 		pmm->bitmap[base_bitmap_index] = pmm->bitmap[base_bitmap_index] & final_mask;
 		return;
@@ -226,7 +222,7 @@ mark_bitmap_usable_from_e820(struct boot_info* b_info, struct physical_memory_ma
  * first 4MB at the very least. Thanks to that in this function physical addresses
  * and virtual addresses can be used almost the same way.
  */
-void
+uint8_t
 arch_pmm_init(struct boot_info* b_info, struct physical_memory_map* pmm)
 {
 	// first of all we want to traverse ant look after the highest address
@@ -260,12 +256,15 @@ arch_pmm_init(struct boot_info* b_info, struct physical_memory_map* pmm)
 	uint8_t rc = get_free_mem_range_for_bitmap(b_info, bytes_to_alloc, &bitmap_addr);
 
 	if (rc != 0 || bitmap_addr >= 0xffffffff) {
-		/* panic ? */
-		return;
+		return 1;
 	}
 
 	// while we first init the bitmap, we set it to its physical address
 	// however at the end of the function we resolve it to its virtual address
+	// reminder that here we CAN use physical addresses because we assume that 
+	// the identity map covers to this point.
+	// TODO: imlpement a way of knowing how big is this identity area. If the 
+	// received range is out of it we must handle other ways.
 	pmm->bitmap_phy_addr = (physical_address_t)bitmap_addr;
 	pmm->bitmap = (uint8_t*)pmm->bitmap_phy_addr;
 	pmm->bitmap_len = bytes_to_alloc;
@@ -293,4 +292,6 @@ arch_pmm_init(struct boot_info* b_info, struct physical_memory_map* pmm)
 
 	// we will later need a virtual address for the bitmap
 	pmm->bitmap = 0;
+
+	return 0;
 }
