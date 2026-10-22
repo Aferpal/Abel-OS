@@ -29,9 +29,9 @@ arch_vmm_init(struct boot_info* b, struct vmm_context* out_context)
 	                            + &kernel_phys_start);
 	
 	vmm_data.k_page_dir_addr = k_page_dir_addr;
-	vmm_data.k_swap_page_table_addr = k_page_dir_addr + X86_PAGE_SIZE;
-	vmm_data.k_io_page_table_addr = k_page_dir_addr + (2*X86_PAGE_SIZE);
-	vmm_data.k_code_page_table_addr = k_page_dir_addr + (3*X86_PAGE_SIZE);
+	vmm_data.k_swap_page_table_addr = k_page_dir_addr + X86_PAGE_SIZE; // old identity
+	vmm_data.k_io_page_table_addr = k_page_dir_addr + (2*X86_PAGE_SIZE); // pre-reserved entry?
+	vmm_data.k_code_page_table_addr = k_page_dir_addr + (3*X86_PAGE_SIZE); // kernel
 
 	arch_data_vmm.cr3 = vmm_data.k_page_dir_addr;
 
@@ -109,7 +109,7 @@ arch_vmm_init(struct boot_info* b, struct vmm_context* out_context)
 	/* KERNEL AVAILABLE RANGE */
 	k_range.flags = VMM_REGION_USABLE;
 	k_range.next = &swp_range;
-	k_range.length = (uint32_t)(swp_range.start_address - kernel_end);
+	k_range.length = (uint32_t)(swp_range.start_address - (uint32_t)kernel_end);
 	k_range.start_address = (uint32_t)(&kernel_end);
 
 	/* KERNEL ACTIVE RANGE */

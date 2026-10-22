@@ -3,6 +3,6 @@
 
 #include <kernel/pmm/types.h>
 
-void arch_pmm_init(struct boot_info*, struct physical_memory_map*);
+uint8_t arch_pmm_init(struct boot_info*, struct physical_memory_map*);
 
 #endif
