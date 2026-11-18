@@ -15,7 +15,7 @@ vmm_init(struct boot_info* b)
 uint8_t
 vmm_create_context(struct vmm_context* res)
 {
-	return arch_vmm_create_context(res);
+	return arch_vmm_create_context(&kernel_vmm_context, res);
 }
 
 ptr_t
@@ -90,7 +90,7 @@ void
 vmm_unmap(struct vmm_context* vmm, ptr_t vaddr)
 {
 	struct vmm_region* region = get_region_from_ptr(vmm->region_map, vaddr);
-	arch_vmm_unmap(vaddr);
+	arch_vmm_unmap(&kernel_vmm_context, vaddr);
 
 	vmm_free_range(region, vaddr, 4096, 0);
 }
@@ -144,9 +144,12 @@ vmm_alloc_page_noalloc(uint32_t flags)
 void
 vmm_free_page(ptr_t p)
 {
-	physical_address_t phy = arch_vmm_virt_to_phys(p);
+
+	ptr_t page_aligned = vmm_get_page(p) * 4096;
+
+	physical_address_t phy = arch_vmm_virt_to_phys(&kernel_vmm_context, page_aligned);
 	
-	vmm_unmap(&kernel_vmm_context, p);
+	vmm_unmap(&kernel_vmm_context, page_aligned);
 	
 	pmm_free_page(phy);
 }
