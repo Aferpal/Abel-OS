@@ -88,11 +88,36 @@ task2(void)
 }
 
 void
+vmm_printer(void)
+{
+	struct input_event evt;
+	while(1) {
+
+		while( !input_event_pop(&evt) ) {
+
+		}
+
+		if (evt.evid == EV_KEY && 
+			evt.key_evt.type == KEY_PRESS && 
+			evt.key_evt.value == KEY_P) { /* SI ES EVENTO DE TECLADO Y ES PRESIONAR LA TECLA P */
+
+			vmm_print_map();
+
+		} else if (! (evt.evid == EV_KEY && evt.key_evt.type == KEY_RELEASE && evt.key_evt.value == KEY_P)){ /* SI NO ES RELEASE NO ME QUEJO! */
+
+			printk("An unexpected event arised!\n");
+		
+		}
+
+	}
+}
+
+void
 idle(void)
 {
 	printk("Idle task\n");
 	for(;;) {
-	
+		asm("hlt");
 	}
 }
 
@@ -135,6 +160,10 @@ kernel_main(struct boot_info* b)
 	scheduler_add_process(&tmp);
 
 	rc = proc_create_kthread(kalloc_test, &tmp);
+
+	scheduler_add_process(&tmp);
+
+	rc = proc_create_kthread(vmm_printer, &tmp);
 
 	scheduler_add_process(&tmp);
 
