@@ -68,9 +68,7 @@ vmm_map(struct vmm_context* vmm, ptr_t vaddr, physical_address_t paddr, uint32_t
 
 	arch_vmm_map(vmm, vaddr, paddr, 1, flags);
 
-	struct vmm_region* region = vmm_find_free_range(vmm->region_map, 4096);
-
-	vmm_reserve_range(region, region->start_address, 4096, 0);
+	vmm_reserve_range(kernel_vmm_context.region_map, vaddr, 4096, 0);
 
 }
 
@@ -80,9 +78,7 @@ vmm_map_noalloc(struct vmm_context* vmm, ptr_t vaddr, physical_address_t paddr, 
 
 	arch_vmm_map(vmm, vaddr, paddr, 1, flags);
 
-	struct vmm_region* region = vmm_find_free_range(vmm->region_map, 4096);
-
-	vmm_reserve_range(region, region->start_address, 4096, VMM_NOALLOC);
+	vmm_reserve_range(kernel_vmm_context.region_map, vaddr, 4096, VMM_NOALLOC);
 
 }
 
