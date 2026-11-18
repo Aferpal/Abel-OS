@@ -5,7 +5,7 @@
 
 void scheduler_init(struct sched_ops*);
 
-void scheduler_add_process(uint32_t stack, uint32_t priority);
+void scheduler_add_process(struct pcb*);
 
 void scheduler_kill_process(pid_t);
 

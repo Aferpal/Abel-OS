@@ -12,9 +12,15 @@ extern uint8_t* kernel_phys_start;
 static struct vmm_core_data vmm_data;
 static struct vmm_arch_data arch_data_vmm;
 
-static struct vmm_region user_range, io_range, kactive_range, k_range, swp_range, rec_range;
+static struct vmm_region user_range, io_range, kactive_range, k_range, rec_range;
 
 extern void reload_page_directory();
+
+struct vmm_addr_space* 
+arch_vmm_current_addr_space()
+{
+	return (struct vmm_addr_space*)X86_CURRENT_ADDR_SPACE;
+}
 
 void
 arch_vmm_init(struct boot_info* b, struct vmm_context* out_context)
@@ -95,85 +101,43 @@ arch_vmm_init(struct boot_info* b, struct vmm_context* out_context)
 	reload_page_directory();
 
 	/* RECURSIVE RANGE */
-	rec_range.flags = VMM_REGION_USED;
+	rec_range.flags = VMM_REGION_USED | VMM_REGION_KERNEL;
 	rec_range.next = 0;
+	rec_range.prev = &k_range;
 	rec_range.length = (X86_PAGE_SIZE * X86_PAGE_N_ENTRIES);
 	rec_range.start_address = X86_CURRENT_ADDR_SPACE;
 
-	/* SWP RANGE */
-	swp_range.flags = VMM_REGION_USABLE;
-	swp_range.next = &rec_range;
-	swp_range.length = (X86_PAGE_SIZE * X86_PAGE_N_ENTRIES);
-	swp_range.start_address = (X86_SWAP_PAGE_IDX << X86_VIRT_ADDR_PDI_RSHFT);
-
 	/* KERNEL AVAILABLE RANGE */
 	k_range.flags = VMM_REGION_USABLE;
-	k_range.next = &swp_range;
-	k_range.length = (uint32_t)(swp_range.start_address - (uint32_t)kernel_end);
+	k_range.next = &rec_range;
+	k_range.prev = &kactive_range;
+	k_range.length = (uint32_t)(rec_range.start_address - (uint32_t)&kernel_end);
 	k_range.start_address = (uint32_t)(&kernel_end);
 
 	/* KERNEL ACTIVE RANGE */
-	kactive_range.flags = VMM_REGION_USED;
+	kactive_range.flags = VMM_REGION_USED | VMM_REGION_KERNEL;
 	kactive_range.next = &k_range;
+	kactive_range.prev = &io_range;
 	kactive_range.length = ks;
 	kactive_range.start_address = (X86_KERNEL_PAGE_IDX << X86_VIRT_ADDR_PDI_RSHFT);
 
 	/* IO RANGE */
 	io_range.flags = VMM_REGION_USABLE;
 	io_range.next = &kactive_range;
+	io_range.prev = &user_range;
 	io_range.length = (X86_PAGE_SIZE * X86_PAGE_N_ENTRIES);
 	io_range.start_address = (X86_IO_PAGE_IDX << X86_VIRT_ADDR_PDI_RSHFT);
 
 	/* USER RANGE */
-	user_range.flags = VMM_REGION_UNUSBALE;
+	user_range.flags = VMM_REGION_UNUSBALE | VMM_REGION_USER;
 	user_range.next = &io_range;
+	user_range.prev = 0;
 	user_range.length = io_range.start_address;
 	user_range.start_address = 0;
 
 	out_context->arch = &arch_data_vmm;
 	out_context->space = addr_space;
 	out_context->region_map = &user_range;
-}
-
-static uint32_t
-get_first_free_page_dir_entry_kernel()
-{
-	struct vmm_address_space* current = arch_vmm_current_addr_space();
-
-	uint32_t i = X86_KERNEL_PAGE_IDX;
-
-	uint32_t res = 0;
-
-	while ((i < 0x3ff) && (res != 0)) {
-		if (current->p_dir.pdes[i] == X86_PAGE_NULL_ENTRY) {
-			res = i;
-		}
-		i++;
-	}	
-
-	return res;
-}
-
-static uint32_t
-get_first_free_page_table_entry_kernel_pd(struct vmm_address_space* vs, uint32_t page_dir_index)
-{
-	uint32_t i = 0;
-
-	uint32_t res = 0;
-
-	if (!(vs->p_dir.pdes[page_dir_index] & X86_PAGE_FLAG_PRESENT)) {
-		return 0xffffffff;
-	}	
-
-	while ((i < 0x3ff) && (res != 0)) {
-		if (vs->p_tables[page_dir_index].ptes[i] == X86_PAGE_NULL_ENTRY) {
-			res = i;
-		}	
-		i++;
-	}	
-
-	return res;
-	
 }
 
 uint8_t
@@ -186,7 +150,7 @@ arch_vmm_create_context(struct vmm_context* res)
 		return 1;
 	}
 	
-	struct vmm_address_space* current = arch_vmm_current_addr_space();
+	struct vmm_addr_space* current = arch_vmm_current_addr_space();
 	
 	/* use the swap page in order to init the page with 0s and recursive last entry */
 	current->p_dir.pdes[X86_SWAP_PAGE_IDX] = (page_directory_phy | X86_PAGE_FLAG_KERNEL);
@@ -210,117 +174,16 @@ arch_vmm_create_context(struct vmm_context* res)
 	 * so that the user ( kernel actually ) can modify it before using it.
 	 */
 
-	uint32_t free_page_dir = get_first_free_page_dir_entry_kernel();
+	uint32_t free_page_dir = 0;//get_first_free_page_dir_entry_kernel();
 
 	if (free_page_dir == 0 || free_page_dir > 0x3ff) {
 		return 1;
 	}
 
 	current->p_dir.pdes[free_page_dir] = (page_directory_phy | X86_PAGE_FLAG_KERNEL);
-	(*res) = (struct vmm_addr_space*)(free_page_dir << X86_VIRT_ADDR_PDI_RSHFT); 
+	//(*res) = (struct vmm_addr_space*)(free_page_dir << X86_VIRT_ADDR_PDI_RSHFT); 
 	return 0;
 
-}
-
-static void
-arch_vmm_alloc_page_table(struct vmm_addr_space* addr_space, uint32_t pdi)
-{
-	if (addr_space == 0) {
-		return;
-	}
-
-	if (addr_space->p_dir.pdes[pdi] & X86_PAGE_FLAG_PRESENT) {
-		// this page table already exists!
-		return;
-	}
-
-	physical_address_t p_addr = pmm_alloc_page();
-
-	addr_space->p_dir.pdes[pdi] = (p_addr | X86_PAGE_FLAG_KERNEL);
-
-	/* theorically nothing else is to be done */
-
-	/* we make sure that the change has been done */
-	reload_page_directory(); 
-
-	/* and fill with 0s the new pagem table */
-	for (int i = 0; i < X86_PAGE_N_ENTRIES; i++) {
-		addr_space->p_tables[pdi].ptes[i] = X86_PAGE_NULL_ENTRY;
-	}
-}
-
-ptr_t
-arch_vmm_find_unused_page_kernel()
-{
-	struct vmm_addr_space* asp = (struct vmm_addr_space*)X86_CURRENT_ADDR_SPACE;
-
-	struct page_table* kernel_pt = &(asp->p_tables[X86_KERNEL_PAGE_IDX]);
-
-	uint16_t i = 0;
-
-	while ((i < X86_PAGE_N_ENTRIES) && (kernel_pt->ptes[i] != 0)) {
-		i++;
-	}
-
-	if (i == X86_PAGE_N_ENTRIES) {
-		// in this case we are pretty joever, should probably
-		// get new page tables for kernel
-		return 0;
-	}
-
-	/* now what is the address of the page table entry i in the kernel? */
-	/* well kernel base address is known */
-	uint32_t kstart = (uint32_t)(&kernel_virt_start);
-	/* to that we need to add i*PAGE_SIZE */
-	kstart = kstart + (i * X86_PAGE_SIZE);
-
-	return (ptr_t)kstart;
-
-}
-
-ptr_t
-arch_vmm_map_core(physical_address_t base, uint32_t len)
-{
-	/* calc number of needed */
-	uint32_t n_pages = ((len + X86_PAGE_SIZE)/ X86_PAGE_SIZE );
-
-	/* we need to allocate such a big mem block in the page table */
-	struct vmm_addr_space* addr_space = (struct vmm_addr_space*)X86_CURRENT_ADDR_SPACE;
-
-	struct page_table* core_pt = &(addr_space->p_tables[X86_IO_PAGE_IDX]);
-
-	uint32_t found = 0;
-	uint32_t i;
-	for (i = 0; (i < X86_PAGE_N_ENTRIES) && (found < n_pages); i++) {
-		
-		if (core_pt->ptes[i] & X86_PAGE_FLAG_PRESENT) {
-			found = 0;
-		} else {
-			found++;
-		}
-	}
-
-	if (found != n_pages) {
-		return 0;
-	}
-
-	i = i - n_pages;
-
-	for (int j = 0; j < n_pages; j++) {
-		core_pt->ptes[i+j] = 0;
-		core_pt->ptes[i + j] = (base + (j*X86_PAGE_SIZE)) | X86_PAGE_FLAG_KERNEL;
-	}
-
-	/*
-	 * now we should return the actual virtual address that corresponds to
-	 * that pte 
-	 */
-
-	/* we know that IO page is in 0xC0000000 don't we? */
-	ptr_t core_base = 0xC0000000;
-	core_base = core_base + (X86_PAGE_SIZE * i);
-
-	return core_base;
 }
 
 void
@@ -361,12 +224,6 @@ arch_vmm_virt_to_phys(ptr_t p)
 	
 }
 
-struct vmm_addr_space* 
-arch_vmm_current_addr_space()
-{
-	return (struct vmm_addr_space*)X86_CURRENT_ADDR_SPACE;
-}
-
 static uint32_t
 arch_flags_from_kernel_flags(uint32_t flags)
 {
@@ -383,7 +240,7 @@ arch_flags_from_kernel_flags(uint32_t flags)
 }
 
 void
-arch_vmm_map(struct vmm_context* vmm, ptr_t v, physical_address_t p, uint32_t flags)
+arch_vmm_map(struct vmm_context* vmm, ptr_t v, physical_address_t p, uint32_t n_pages, uint32_t flags)
 {
 	uint32_t pdi = X86_ADDR_TO_PDI(v);
 	uint32_t pti = X86_ADDR_TO_PTI(v);
@@ -401,7 +258,9 @@ arch_vmm_map(struct vmm_context* vmm, ptr_t v, physical_address_t p, uint32_t fl
 	}
 
 	uint32_t arch_flags = arch_flags_from_kernel_flags(flags);
-	addr_space->p_tables[pdi].ptes[pti] = (p | arch_flags);
+	for (int i = 0; i < n_pages; i++) {
+		addr_space->p_tables[pdi].ptes[pti+i] = ((p+(i*X86_PAGE_SIZE)) | arch_flags);
+	}
 
 	reload_page_directory();	
 }

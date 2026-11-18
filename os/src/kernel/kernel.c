@@ -123,21 +123,24 @@ kernel_main(struct boot_info* b)
 
 	scheduler_init(0);
 	
-	uint32_t stack_init = proc_create_process(main);
+	struct pcb tmp;
 
-	scheduler_add_process(stack_init, 0);
+	uint8_t rc;
+	rc = proc_create_kthread(main, &tmp);
 
-	uint32_t stack_task2 = proc_create_process(task2);
+	scheduler_add_process(&tmp);
 
-	scheduler_add_process(stack_task2, 0);
+	rc = proc_create_kthread(task2, &tmp);
 
-	uint32_t stack_ktest = proc_create_process(kalloc_test);
+	scheduler_add_process(&tmp);
 
-	scheduler_add_process(stack_ktest, 0);
+	rc = proc_create_kthread(kalloc_test, &tmp);
 
-	uint32_t stack_idle = proc_create_process(idle);
+	scheduler_add_process(&tmp);
 
-	scheduler_add_process(stack_idle, 0);
+	rc = proc_create_kthread(idle, &tmp);
+
+	scheduler_add_process(&tmp);
 
 	scheduler_start();
 

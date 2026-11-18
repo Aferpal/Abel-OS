@@ -3,14 +3,15 @@
 
 #include "stdint.h"
 
-typedef struct vmm_arch_data;
-typedef struct vmm_addr_space;
+typedef struct vmm_arch_data vmm_arch_data_s;
+typedef struct vmm_addr_space vmm_addr_space_s;
 
 struct vmm_region {
     ptr_t start_address;
     uint32_t length;
     uint32_t flags;
     struct vmm_region* next;
+    struct vmm_region* prev;
 };
 
 struct vmm_context {

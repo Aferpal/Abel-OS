@@ -9,11 +9,7 @@ void arch_vmm_init(struct boot_info*, struct vmm_context*);
 
 uint8_t arch_vmm_create_context(struct vmm_context*);
 
-ptr_t arch_vmm_map_core(physical_address_t base, uint32_t len);
-
-void arch_vmm_map(struct vmm_context*, ptr_t, physical_address_t, uint32_t flags);
-
-ptr_t arch_vmm_find_unused_page_kernel();
+void arch_vmm_map(struct vmm_context*, ptr_t, physical_address_t, uint32_t n_pages, uint32_t flags);
 
 void arch_vmm_unmap(ptr_t);
 
