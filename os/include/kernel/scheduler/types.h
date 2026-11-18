@@ -2,6 +2,7 @@
 #define _SCHEDULER_TYPES_H_
 
 #include "stdint.h"
+#include "kernel/vmm/types.h"
 
 typedef uint32_t pid_t;
 
@@ -23,7 +24,7 @@ struct pcb {
 	uint16_t flags;
 	uint16_t status;
 	uint32_t runtime;
-	uint32_t cr3;
+	struct vmm_context* vmm;
 };
 
 struct sched_ops {

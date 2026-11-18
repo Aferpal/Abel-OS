@@ -10,4 +10,6 @@
 
 uint8_t proc_create_process(void (*p_start)(void), uint32_t priority, struct pcb* res);
 
+uint8_t proc_create_kthread(void (*p_start)(void), struct pcb* res);
+
 #endif

@@ -36,7 +36,7 @@ kalloc(uint32_t n)
 	// normalize, we always want to alloc an even amount of mem
 	// in order to use our super advanced system of occ/free distinction
 	if (f_list == 0) {
-		f_list = (struct kobject_header*)vmm_alloc_page();
+		f_list = (struct kobject_header*)vmm_alloc_page(VMM_PROT_KERNEL | VMM_PROT_WRITE | VMM_PROT_READ);
 		kobject_free_init(f_list, 4096);
 	}
 
@@ -50,7 +50,7 @@ kalloc(uint32_t n)
 			prev = current;
 			current = (struct kobject_header*)current->next;
 		} else {
-			current = (struct kobject_header*)vmm_alloc_page();
+			current = (struct kobject_header*)vmm_alloc_page(VMM_PROT_KERNEL | VMM_PROT_WRITE | VMM_PROT_READ);
 			kobject_free_init(current, 4096);
 			
 			struct kobject_header* tmp = f_list;

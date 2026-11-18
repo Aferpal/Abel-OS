@@ -11,15 +11,23 @@ uint8_t vmm_create_context(struct vmm_context*);
 
 ptr_t vmm_map_core(physical_address_t base, uint32_t len);
 
+ptr_t vmm_map_io(physical_address_t base, uint32_t len);
+
 void vmm_map(struct vmm_context*, ptr_t, physical_address_t, uint32_t flags);
+
+void vmm_map_noalloc(struct vmm_context*, ptr_t, physical_address_t, uint32_t flags);
 
 void vmm_unmap(struct vmm_context*, ptr_t);
 
 ptr_t vmm_alloc_page(uint32_t flags);
 
+ptr_t vmm_alloc_page_noalloc(uint32_t flags);
+
 void vmm_free_page(ptr_t);
 
 uint32_t vmm_get_page(ptr_t);
+
+struct vmm_context* get_kernel_vmm();
 
 #endif
 
