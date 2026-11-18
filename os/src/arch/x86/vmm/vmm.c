@@ -16,12 +16,6 @@ static struct vmm_region user_range, io_range, kactive_range, k_range, rec_range
 
 extern void reload_page_directory();
 
-struct vmm_addr_space* 
-arch_vmm_current_addr_space()
-{
-	return (struct vmm_addr_space*)X86_CURRENT_ADDR_SPACE;
-}
-
 void
 arch_vmm_init(struct boot_info* b, struct vmm_context* out_context)
 {
@@ -141,7 +135,7 @@ arch_vmm_init(struct boot_info* b, struct vmm_context* out_context)
 }
 
 uint8_t
-arch_vmm_create_context(struct vmm_context* res)
+arch_vmm_create_context(struct vmm_context* ctx, struct vmm_context* res)
 {
 	/* we first allocate the bare minimum, a page directory */
 	physical_address_t page_directory_phy = pmm_alloc_page();
@@ -150,7 +144,7 @@ arch_vmm_create_context(struct vmm_context* res)
 		return 1;
 	}
 	
-	struct vmm_addr_space* current = arch_vmm_current_addr_space();
+	struct vmm_addr_space* current = ctx->space;
 	
 	/* use the swap page in order to init the page with 0s and recursive last entry */
 	current->p_dir.pdes[X86_SWAP_PAGE_IDX] = (page_directory_phy | X86_PAGE_FLAG_KERNEL);
@@ -187,12 +181,12 @@ arch_vmm_create_context(struct vmm_context* res)
 }
 
 void
-arch_vmm_unmap(ptr_t p)
+arch_vmm_unmap(struct vmm_context* ctx, ptr_t p)
 {
 	uint32_t pdi = X86_ADDR_TO_PDI(p);
 	uint32_t pti = X86_ADDR_TO_PTI(p);
 
-	struct vmm_addr_space* cas = arch_vmm_current_addr_space();
+	struct vmm_addr_space* cas = ctx->space;
 
 	if (!(cas->p_dir.pdes[pdi] & X86_PAGE_FLAG_PRESENT)) {
 		// if not present what tha hell
@@ -204,12 +198,12 @@ arch_vmm_unmap(ptr_t p)
 }
 
 physical_address_t
-arch_vmm_virt_to_phys(ptr_t p)
+arch_vmm_virt_to_phys(struct vmm_context* ctx, ptr_t p)
 {
 	uint32_t pdi = X86_ADDR_TO_PDI(p);
 	uint32_t pti = X86_ADDR_TO_PTI(p);
 	
-	struct vmm_addr_space* cas = arch_vmm_current_addr_space();
+	struct vmm_addr_space* cas = ctx->space;
 
 	if (!(cas->p_dir.pdes[pdi] & X86_PAGE_FLAG_PRESENT)) {
 		// if not present what tha hell
