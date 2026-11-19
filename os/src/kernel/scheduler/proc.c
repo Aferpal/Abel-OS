@@ -2,15 +2,16 @@
 #include "arch/scheduler_hal.h"
 #include "kernel/vmm/vmm.h"
 #include "kernel/scheduler/proc.h"
+#include "kernel/kalloc/kalloc.h"
 #include "kernel/printk.h"
 
 uint8_t
 proc_create_process(void (*p_start)(void), uint32_t priority, struct pcb* res)
 {
 
-	// 1. Create a page directory
-	struct vmm_addr_space* p_layout;
-	//int rc = vmm_create_addr_space(&p_layout);
+	// 1. Create a memory context
+	struct vmm_context* user_vmm_context = kalloc(sizeof(struct vmm_context));
+	uint8_t rc = vmm_create_context(user_vmm_context);
 
 	void* stack_end = (void*)vmm_alloc_page(VMM_PROT_KERNEL | VMM_PROT_WRITE);
 	
