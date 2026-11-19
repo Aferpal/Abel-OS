@@ -15,6 +15,9 @@ vmm_init(struct boot_info* b)
 uint8_t
 vmm_create_context(struct vmm_context* res)
 {
+	/* First we call arch_vmm_create_context, it will initialize a small context */
+	arch_vmm_create_context(&kernel_vmm_context, res);
+	
 	return arch_vmm_create_context(&kernel_vmm_context, res);
 }
 

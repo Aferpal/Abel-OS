@@ -50,7 +50,9 @@
 
 #define X86_IO_PAGE_IDX        0x300
 
-#define X86_SWAP_PAGE_IDX      0x3fe
+#define X86_SWAP_PAGE_IDX      0x3fd
+
+#define X86_KERNEL_PD_IDX      0x3fe
 
 #define X86_CURRENT_ADDR_SPACE  0xffc00000
 

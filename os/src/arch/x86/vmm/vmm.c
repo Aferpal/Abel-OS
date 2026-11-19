@@ -2,6 +2,7 @@
 #include "arch/x86/vmm/types.h"
 #include "arch/vmm_hal.h"
 #include "kernel/pmm/pmm.h"
+#include "kernel/kalloc/kalloc.h"
 #include "kernel/vmm/defines.h"
 
 extern uint8_t* kernel_start;
@@ -50,7 +51,7 @@ arch_vmm_init(struct boot_info* b, struct vmm_context* out_context)
 	 *                         -> if kernel is larger than 4MB you did
 	 *                         -> something wrong :)
 	 * 0xC0800000 - 0xFF800000 -> Free memory, unmapped, no pts
-	 * 0xFF800000 - 0xFFC00000 -> swap page, unmapped
+	 * 0xFF800000 - 0xFFC00000 -> kernel page directory
 	 * 0xFFC00000 - 0xFFFFFFFF -> Recursive mapping of page dir itself
 	 *                         -> through this 4MB address range we will
 	 *                         -> modify the kernel pages themselves
@@ -70,16 +71,10 @@ arch_vmm_init(struct boot_info* b, struct vmm_context* out_context)
 	
 	/* We now remap the known physical address to the definitive vmem addr */
 	
-	addr_space->p_dir.pdes[X86_SWAP_PAGE_IDX] = 
-		                        ((vmm_data.k_swap_page_table_addr 
+	addr_space->p_dir.pdes[X86_KERNEL_PD_IDX] = 
+		                        ((vmm_data.k_page_dir_addr 
 	                                & X86_PDE_PT_MASK ) |
 	                                X86_PAGE_FLAG_KERNEL);
-
-	/* And fill it with 0s */
-	struct page_table* swap_pt = &(addr_space->p_tables[X86_SWAP_PAGE_IDX]);
-	for (int i = 0; i < X86_PAGE_N_ENTRIES; i++) {
-		swap_pt->ptes[i] = X86_PAGE_NULL_ENTRY; 
-	}
 
 	/* At last we shrink the kernel mapped pages to the bare minimum */
 	struct page_table* kernel_pt = &(addr_space->p_tables[X86_KERNEL_PAGE_IDX]);
@@ -98,8 +93,8 @@ arch_vmm_init(struct boot_info* b, struct vmm_context* out_context)
 	rec_range.flags = VMM_REGION_USED | VMM_REGION_KERNEL;
 	rec_range.next = 0;
 	rec_range.prev = &k_range;
-	rec_range.length = (X86_PAGE_SIZE * X86_PAGE_N_ENTRIES);
-	rec_range.start_address = X86_CURRENT_ADDR_SPACE;
+	rec_range.length = (X86_PAGE_SIZE * X86_PAGE_N_ENTRIES)*2;
+	rec_range.start_address = X86_CURRENT_ADDR_SPACE - (X86_PAGE_SIZE * X86_PAGE_N_ENTRIES);
 
 	/* KERNEL AVAILABLE RANGE */
 	k_range.flags = VMM_REGION_USABLE;
@@ -130,7 +125,7 @@ arch_vmm_init(struct boot_info* b, struct vmm_context* out_context)
 	user_range.start_address = 0;
 
 	out_context->arch = &arch_data_vmm;
-	out_context->space = addr_space;
+	out_context->space = (struct vmm_addr_space*)rec_range.start_address;
 	out_context->region_map = &user_range;
 }
 
@@ -168,14 +163,12 @@ arch_vmm_create_context(struct vmm_context* ctx, struct vmm_context* res)
 	 * so that the user ( kernel actually ) can modify it before using it.
 	 */
 
-	uint32_t free_page_dir = 0;//get_first_free_page_dir_entry_kernel();
+	struct vmm_arch_data* user_arch_data = kalloc(sizeof(struct vmm_arch_data));
+	user_arch_data->cr3 = page_directory_phy;
 
-	if (free_page_dir == 0 || free_page_dir > 0x3ff) {
-		return 1;
-	}
+	res->arch = user_arch_data;
+	res->space = 0; /* space is set to 0 for now, not yet mapped */
 
-	current->p_dir.pdes[free_page_dir] = (page_directory_phy | X86_PAGE_FLAG_KERNEL);
-	//(*res) = (struct vmm_addr_space*)(free_page_dir << X86_VIRT_ADDR_PDI_RSHFT); 
 	return 0;
 
 }
