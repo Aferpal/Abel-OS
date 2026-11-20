@@ -21,11 +21,11 @@
 
 #define X86_PAGE_FLAG_KERNEL  (X86_PAGE_FLAG_PRESENT | \
                                X86_PAGE_FLAG_RW | \
-			       X86_PAGE_FLAG_U_PERM | \
-			       X86_PAGE_FLAG_GLOBAL )
+                               X86_PAGE_FLAG_GLOBAL )
 
 #define X86_PAGE_FLAG_USER    (X86_PAGE_FLAG_PRESENT | \
-                               X86_PAGE_FLAG_RW )
+                               X86_PAGE_FLAG_RW | \
+							   X86_PAGE_FLAG_U_PERM )
 
 
 #define X86_VIRT_ADDR_PDI_MASK  0xffc00000
