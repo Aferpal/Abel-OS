@@ -21,6 +21,7 @@ struct pcb {
 	pid_t id;
 	uint32_t priority;
 	uint32_t stack_ptr;
+	uint32_t kstack_ptr;
 	uint16_t flags;
 	uint16_t status;
 	uint32_t runtime;

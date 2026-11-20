@@ -3,6 +3,14 @@
 
 #include "stdint.h"
 
+struct jump_to_user_frame {
+	uint32_t entry_ip;
+	uint32_t cs;
+	uint32_t eflags;
+	uint32_t sp;
+	uint32_t ss;
+};
+
 struct sched_frame {
 	uint32_t edi;
 	uint32_t esi;

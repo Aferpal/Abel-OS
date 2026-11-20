@@ -1,5 +1,6 @@
 #include "kernel/printk.h"
 #include "arch/arch_hal.h"
+#include "arch/userspace_hal.h"
 #include "drivers/keyboard.h"
 #include "kernel/interrupt/interrupts.h"
 #include "arch/x86/timer/pit.h"
@@ -121,6 +122,14 @@ idle(void)
 	}
 }
 
+__attribute__((aligned(4096)))
+void
+user_program(void)
+{
+	for(;;) {
+	}
+}
+
 void
 kernel_main(struct boot_info* b)
 {
@@ -141,6 +150,8 @@ kernel_main(struct boot_info* b)
 	pit_init();
 
 	ps2_keyboard_init();
+
+	arch_prepare_userspace();
 
 	enable_interrupts();
 	
@@ -164,6 +175,10 @@ kernel_main(struct boot_info* b)
 	scheduler_add_process(&tmp);
 
 	rc = proc_create_kthread(vmm_printer, &tmp);
+
+	scheduler_add_process(&tmp);
+
+	rc = proc_create_process(user_program, 100, &tmp);
 
 	scheduler_add_process(&tmp);
 
