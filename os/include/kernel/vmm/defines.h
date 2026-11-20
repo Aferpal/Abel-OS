@@ -9,8 +9,8 @@
 #define VMM_REGION_USER         0x20
 #define VMM_NOALLOC             0x40
 
-#define VMM_PROT_USER    0x00000000
-#define VMM_PROT_KERNEL  0x00000001
+#define VMM_PROT_KERNEL  0x00000000
+#define VMM_PROT_USER    0x00000001
 
 #define VMM_PROT_WRITE   0x00000002
 #define VMM_PROT_READ	 0x00000000
