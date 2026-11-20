@@ -21,5 +21,6 @@ uint32_t vmm_reserve_io_range(struct vmm_region* region, ptr_t start, uint32_t l
 
 uint32_t vmm_free_range(struct vmm_region* region_list, ptr_t start, uint32_t len, uint32_t flags);
 
+uint32_t vmm_region_init_region_map(struct vmm_region**);
 
 #endif

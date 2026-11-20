@@ -405,3 +405,47 @@ vmm_free_range(struct vmm_region* region_list, ptr_t start, uint32_t len, uint32
     }
     return _vmm_free_range(region, start, len, flags);
 }
+
+uint32_t
+vmm_region_init_region_map(struct vmm_region** region_list)
+{
+    if (!region_list) {
+        return VMM_REGION_BAD_ARGS;
+    }
+
+    struct vmm_region* n_region = get_new_free_region();
+    struct vmm_region* null_region;
+
+    if (!n_region) {
+        return VMM_REGION_FAIL;
+    }
+
+    null_region = get_new_free_region();
+
+    if (!null_region) {
+        add_region_to_pool(n_region);
+        return VMM_REGION_FAIL;
+    }
+
+    null_region->prev = 0;
+    null_region->next = n_region;
+    null_region->start_address = 0;
+    null_region->length = 4096;
+    null_region->flags = VMM_REGION_UNUSBALE;
+
+    n_region->prev = null_region;
+    n_region->next = 0;
+    n_region->start_address = 4096; /* start of user */
+    n_region->length = (0xc0000000 - 4096);
+    n_region->flags = VMM_REGION_USER | VMM_REGION_USABLE;
+
+    *region_list = null_region;
+
+    /* if i can alloc just try to*/
+    if (vmm_region_pool_should_grow()) {
+        vmm_region_pool_grow();
+    }
+
+    return VMM_REGION_SUCCESS;
+
+}
