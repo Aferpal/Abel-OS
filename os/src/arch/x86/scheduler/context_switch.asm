@@ -1,5 +1,7 @@
 global arch_switch_context
 
+extern global_tss
+
 ; at esp, as always eip
 ; at esp + 4, struct pcb* prev
 ; at esp + 8, struct pcb* next
@@ -20,8 +22,21 @@ arch_switch_context:
   ; struct pcb* next
   mov edx, [esp + 28]
 
+  ; next->kstack_ptr
+  mov eax, [edx + 12]
+
+  ; if kstack_ptr is 0 then this is a kthread
+  ; in which case there ain't no need to change tss
+  cmp eax, 0
+  je noloadtss
+
+  ; load the tss
+  mov [global_tss + 4], eax
+
+noloadtss:
+
   ; mov eax, next->vmm
-  mov eax, [edx + 20]
+  mov eax, [edx + 24]
 
   ; mov eax, next->vmm->arch
   mov eax, [eax + 4]
