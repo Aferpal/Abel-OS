@@ -17,6 +17,8 @@ static struct vmm_region user_range, io_range, kactive_range, k_range, rec_range
 
 extern void reload_page_directory();
 
+extern uint32_t get_current_cr3();
+
 void
 arch_vmm_init(struct boot_info* b, struct vmm_context* out_context)
 {
@@ -139,7 +141,7 @@ arch_vmm_create_context(struct vmm_context* ctx, struct vmm_context* res)
 		return 1;
 	}
 	
-	struct vmm_addr_space* current = ctx->space;
+	struct vmm_addr_space* current = (struct vmm_addr_space*)X86_CURRENT_ADDR_SPACE;
 	
 	/* use the swap page in order to init the page with 0s and recursive last entry */
 	current->p_dir.pdes[X86_SWAP_PAGE_IDX] = (page_directory_phy | X86_PAGE_FLAG_KERNEL);
@@ -179,14 +181,22 @@ arch_vmm_unmap(struct vmm_context* ctx, ptr_t p)
 	uint32_t pdi = X86_ADDR_TO_PDI(p);
 	uint32_t pti = X86_ADDR_TO_PTI(p);
 
-	struct vmm_addr_space* cas = ctx->space;
+	struct vmm_addr_space* addr_space = (struct vmm_addr_space*)X86_CURRENT_ADDR_SPACE;
 
-	if (!(cas->p_dir.pdes[pdi] & X86_PAGE_FLAG_PRESENT)) {
+	if (ctx->arch->cr3 != get_current_cr3()) {
+		/* this means someone is trying to map into someone elses */
+		/* temporal mapping */
+		addr_space->p_dir.pdes[X86_SWAP_PAGE_IDX] = ctx->arch->cr3 | X86_PAGE_FLAG_KERNEL;
+
+		addr_space = (struct vmm_addr_space*)(X86_SWAP_PAGE_IDX << X86_VIRT_ADDR_PDI_RSHFT);
+	}
+
+	if (!(addr_space->p_dir.pdes[pdi] & X86_PAGE_FLAG_PRESENT)) {
 		// if not present what tha hell
 		return;
 	}
 
-	cas->p_tables[pdi].ptes[pti] = X86_PAGE_NULL_ENTRY;
+	addr_space->p_tables[pdi].ptes[pti] = X86_PAGE_NULL_ENTRY;
 
 }
 
@@ -196,18 +206,26 @@ arch_vmm_virt_to_phys(struct vmm_context* ctx, ptr_t p)
 	uint32_t pdi = X86_ADDR_TO_PDI(p);
 	uint32_t pti = X86_ADDR_TO_PTI(p);
 	
-	struct vmm_addr_space* cas = ctx->space;
+	struct vmm_addr_space* addr_space = (struct vmm_addr_space*)X86_CURRENT_ADDR_SPACE;
 
-	if (!(cas->p_dir.pdes[pdi] & X86_PAGE_FLAG_PRESENT)) {
+	if (ctx->arch->cr3 != get_current_cr3()) {
+		/* this means someone is trying to map into someone elses */
+		/* temporal mapping */
+		addr_space->p_dir.pdes[X86_SWAP_PAGE_IDX] = ctx->arch->cr3 | X86_PAGE_FLAG_KERNEL;
+
+		addr_space = (struct vmm_addr_space*)(X86_SWAP_PAGE_IDX << X86_VIRT_ADDR_PDI_RSHFT);
+	}
+
+	if (!(addr_space->p_dir.pdes[pdi] & X86_PAGE_FLAG_PRESENT)) {
 		// if not present what tha hell
 		return 0;
 	}
 
-	if (!(cas->p_tables[pdi].ptes[pti] & X86_PAGE_FLAG_PRESENT)) {
+	if (!(addr_space->p_tables[pdi].ptes[pti] & X86_PAGE_FLAG_PRESENT)) {
 		return 0;
 	}
 
-	return (cas->p_tables[pdi].ptes[pti] & X86_PDE_PT_MASK); 
+	return (addr_space->p_tables[pdi].ptes[pti] & X86_PDE_PT_MASK); 
 	
 }
 
@@ -215,9 +233,9 @@ static uint32_t
 arch_flags_from_kernel_flags(uint32_t flags)
 {
 	uint32_t res = X86_PAGE_FLAG_PRESENT;
-	if (flags & VMM_PROT_KERNEL) {
+	if (flags & VMM_PROT_USER) {
 		res |= X86_PAGE_FLAG_U_PERM;
-	} /* else not needed since sets to 0 this bit */
+	}
 
 	if (flags & VMM_PROT_WRITE) {
 		res |= X86_PAGE_FLAG_RW;
@@ -232,11 +250,22 @@ arch_vmm_map(struct vmm_context* vmm, ptr_t v, physical_address_t p, uint32_t n_
 	uint32_t pdi = X86_ADDR_TO_PDI(v);
 	uint32_t pti = X86_ADDR_TO_PTI(v);
 
-	struct vmm_addr_space* addr_space = vmm->space;
+	struct vmm_addr_space* addr_space = (struct vmm_addr_space*)X86_CURRENT_ADDR_SPACE;
+
+	uint32_t arch_flags = arch_flags_from_kernel_flags(flags);
+
+	if (vmm->arch->cr3 != get_current_cr3()) {
+		/* this means someone is trying to map into someone elses */
+		/* temporal mapping */
+		addr_space->p_dir.pdes[X86_SWAP_PAGE_IDX] = vmm->arch->cr3 | arch_flags;
+
+		addr_space = (struct vmm_addr_space*)(X86_SWAP_PAGE_IDX << X86_VIRT_ADDR_PDI_RSHFT);
+	}
 
 	if (!(addr_space->p_dir.pdes[pdi] & X86_PAGE_FLAG_PRESENT)) {
 		// in this case we need a new page table!!
-		return;
+		physical_address_t n_pt = pmm_alloc_page();
+		addr_space->p_dir.pdes[pdi] = (n_pt | arch_flags);
 	}
 
 	if (addr_space->p_tables[pdi].ptes[pti] & X86_PAGE_FLAG_PRESENT) {
@@ -244,7 +273,6 @@ arch_vmm_map(struct vmm_context* vmm, ptr_t v, physical_address_t p, uint32_t n_
 		return;
 	}
 
-	uint32_t arch_flags = arch_flags_from_kernel_flags(flags);
 	for (int i = 0; i < n_pages; i++) {
 		addr_space->p_tables[pdi].ptes[pti+i] = ((p+(i*X86_PAGE_SIZE)) | arch_flags);
 	}
