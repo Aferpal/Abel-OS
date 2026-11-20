@@ -17,8 +17,14 @@ vmm_create_context(struct vmm_context* res)
 {
 	/* First we call arch_vmm_create_context, it will initialize a small context */
 	arch_vmm_create_context(&kernel_vmm_context, res);
+
+	/* then create the base new context (it will always create a user context )
+	 * it is obviously pointless to create a new kernel context.
+	 * This returns a single region with the whole user space range
+	 */
+	vmm_region_init_region_map(&res->region_map);
 	
-	return arch_vmm_create_context(&kernel_vmm_context, res);
+	return 0;
 }
 
 ptr_t
@@ -71,7 +77,7 @@ vmm_map(struct vmm_context* vmm, ptr_t vaddr, physical_address_t paddr, uint32_t
 
 	arch_vmm_map(vmm, vaddr, paddr, 1, flags);
 
-	vmm_reserve_range(kernel_vmm_context.region_map, vaddr, 4096, 0);
+	vmm_reserve_range(vmm->region_map, vaddr, 4096, 0);
 
 }
 
@@ -81,7 +87,7 @@ vmm_map_noalloc(struct vmm_context* vmm, ptr_t vaddr, physical_address_t paddr, 
 
 	arch_vmm_map(vmm, vaddr, paddr, 1, flags);
 
-	vmm_reserve_range(kernel_vmm_context.region_map, vaddr, 4096, VMM_NOALLOC);
+	vmm_reserve_range(vmm->region_map, vaddr, 4096, VMM_NOALLOC);
 
 }
 
@@ -89,7 +95,7 @@ void
 vmm_unmap(struct vmm_context* vmm, ptr_t vaddr)
 {
 	struct vmm_region* region = get_region_from_ptr(vmm->region_map, vaddr);
-	arch_vmm_unmap(&kernel_vmm_context, vaddr);
+	arch_vmm_unmap(vmm, vaddr);
 
 	vmm_free_range(region, vaddr, 4096, 0);
 }
