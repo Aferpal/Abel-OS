@@ -1,0 +1,6 @@
+#ifndef _X86_SYSCALL_DEFINES_H_
+#define _X86_SYSCALL_DEFINES_H_
+
+#define SYSCALL_INTERRUPT_VECTOR 0x69
+
+#endif

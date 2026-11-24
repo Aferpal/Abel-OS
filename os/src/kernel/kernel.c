@@ -8,6 +8,7 @@
 #include "kernel/kalloc/kalloc.h"
 #include "kernel/scheduler/scheduler.h"
 #include "kernel/scheduler/proc.h"
+#include "kernel/syscall/syscall.h"
 #include "stdint.h"
 
 void
@@ -126,7 +127,23 @@ __attribute__((aligned(4096)))
 void
 user_program(void)
 {
+	int32_t ret;
 	for(;;) {
+		/* syscall 0, hello world */
+		asm volatile (
+			"int $0x69"
+			: "=a" (ret)
+			: "a" (0)
+			: "memory"
+		);
+
+		/* syscall 1, yield */
+		asm volatile (
+			"int $0x69"
+			: "=a" (ret)
+			: "a" (1)
+			: "memory"
+		);
 	}
 }
 
@@ -144,6 +161,8 @@ kernel_main(struct boot_info* b)
 	printk(" [ SETUP ] Setup Complete OK!\n");
 	
 	init_int_subsystem();
+
+	init_syscall_subsystem();
 	
 	input_subsystem_init();
 
