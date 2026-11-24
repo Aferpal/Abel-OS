@@ -2,6 +2,7 @@
 #include "kernel/vmm/vmm.h"
 #include "arch/vmm_hal.h"
 #include "kernel/vmm/regions.h"
+#include "kernel/printk.h"
 
 struct vmm_context kernel_vmm_context;
 

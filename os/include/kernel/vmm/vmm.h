@@ -29,5 +29,7 @@ uint32_t vmm_get_page(ptr_t);
 
 struct vmm_context* get_kernel_vmm();
 
+void vmm_print_map();
+
 #endif
 

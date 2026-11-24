@@ -9,6 +9,7 @@
 #include "kernel/scheduler/scheduler.h"
 #include "kernel/scheduler/proc.h"
 #include "kernel/syscall/syscall.h"
+#include "kernel/vmm/vmm.h"
 #include "stdint.h"
 
 void

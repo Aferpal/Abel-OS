@@ -38,10 +38,10 @@ proc_create_process(void (*p_start)(void), uint32_t priority, struct pcb* res)
 
 	res->id = 0;
 	res->priority = priority;
-	res->stack_ptr = kstack_top;
+	res->stack_ptr = (uint32_t)kstack_top;
 	res->flags = READY;
 	res->runtime = 0;
-	res->kstack_ptr = kstack_top;
+	res->kstack_ptr = (uint32_t)kstack_top;
 	res->vmm = user_vmm_context;
 	return 0;
 }
