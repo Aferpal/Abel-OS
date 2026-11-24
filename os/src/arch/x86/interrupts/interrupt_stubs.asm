@@ -93,8 +93,18 @@ default_isr:
 extern interrupt_dispatch
 
 common_stub:
+  push ds
+  push es
+  push fs
+  push gs
 
   pusha
+
+  mov ax, 0x10
+  mov ds, ax
+  mov es, ax
+  mov fs, ax
+  mov gs, ax
 
   mov eax, esp
   push eax
@@ -105,6 +115,10 @@ common_stub:
   add esp, 4
 
   popa
+  pop gs
+  pop fs
+  pop es
+  pop ds
 
   ; pop the vector we passed before and the error_code
   add esp, 8
