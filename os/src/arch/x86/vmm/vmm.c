@@ -257,7 +257,8 @@ arch_vmm_map(struct vmm_context* vmm, ptr_t v, physical_address_t p, uint32_t n_
 	if (vmm->arch->cr3 != get_current_cr3()) {
 		/* this means someone is trying to map into someone elses */
 		/* temporal mapping */
-		addr_space->p_dir.pdes[X86_SWAP_PAGE_IDX] = vmm->arch->cr3 | arch_flags;
+		addr_space->p_dir.pdes[X86_SWAP_PAGE_IDX] = vmm->arch->cr3 | X86_PAGE_FLAG_KERNEL;
+		reload_page_directory();
 
 		addr_space = (struct vmm_addr_space*)(X86_SWAP_PAGE_IDX << X86_VIRT_ADDR_PDI_RSHFT);
 	}
@@ -265,12 +266,8 @@ arch_vmm_map(struct vmm_context* vmm, ptr_t v, physical_address_t p, uint32_t n_
 	if (!(addr_space->p_dir.pdes[pdi] & X86_PAGE_FLAG_PRESENT)) {
 		// in this case we need a new page table!!
 		physical_address_t n_pt = pmm_alloc_page();
-		addr_space->p_dir.pdes[pdi] = (n_pt | arch_flags);
-	}
-
-	if (addr_space->p_tables[pdi].ptes[pti] & X86_PAGE_FLAG_PRESENT) {
-		// the page is already used!!
-		return;
+		addr_space->p_dir.pdes[pdi] = (n_pt | X86_PAGE_FLAG_USER);
+		reload_page_directory();
 	}
 
 	for (int i = 0; i < n_pages; i++) {
