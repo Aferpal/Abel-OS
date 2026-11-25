@@ -27,7 +27,7 @@ bootdisk: os boot
 	cat $(BOOTLOADER1_BIN) $(BOOTLOADER2_BIN) $(OS_BIN) > $(TARGET)
 
 qemu:
-	qemu-system-x86_64 -enable-kvm -cpu host -m 1G -drive format=raw,file=$(TARGET)
+	qemu-system-x86_64 -enable-kvm -cpu host -m 1G -drive format=raw,file=$(TARGET) -serial stdio
 debug:
 	qemu-system-x86_64 -enable-kvm -cpu host -m 1G -drive format=raw,file=$(TARGET) -S -s
 vqemu:

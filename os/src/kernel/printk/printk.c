@@ -1,10 +1,9 @@
 #include "kernel/printk.h"
 #include "arch/x86/io.h"
-#include "drivers/keyboard.h"
 #include "arch/x86/stdarg.h"
 #include "kernel/vmm/vmm.h"
-#include "string.h"
 #include "mem.h"
+#include "drivers/serial.h"
 #include <stdint.h>
 
 static char *video=(char*) 0xb8000;
@@ -16,6 +15,7 @@ void
 printk_setup()
 {
 	video = (char*)vmm_map_core(0xb8000, 2*80*25);
+	init_rs232();
 	cur_pos_x = 0;
 	cur_pos_y = 0;
 }
@@ -117,6 +117,10 @@ void
 put_char(char c)
 {
 	put_char_at(c, cur_pos_x, cur_pos_y);
+	if (c == '\n') {
+		serial_putc('\r');
+	}
+	serial_putc(c);
 	if (c != '\n' && c != '\t') {
 		advance_char();
 	}
