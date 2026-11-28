@@ -1,9 +1,7 @@
 #include "kernel/printk.h"
-#include "arch/x86/io.h"
-#include "drivers/keyboard.h"
+#include "arch/io_hal.h"
 #include "arch/x86/stdarg.h"
 #include "kernel/vmm/vmm.h"
-#include "string.h"
 #include "mem.h"
 #include <stdint.h>
 
@@ -61,11 +59,11 @@ update_cursor_vga(void)
 {
 	unsigned short pos = cur_pos_y * 80 + cur_pos_x;
 
-	outb(0x3D4, 0x0e);
-	outb(0x3d5, pos >> 8);
+	arch_port_write8(0x3D4, 0x0e);
+	arch_port_write8(0x3d5, pos >> 8);
 
-	outb(0x3d4, 0x0f);
-	outb(0x3d5, pos & 0xFF);
+	arch_port_write8(0x3d4, 0x0f);
+	arch_port_write8(0x3d5, pos & 0xFF);
 }
 
 void
